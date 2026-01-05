@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Exercises - Gym Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Exercises</h1>
+    <a href="{% url 'exercise_create' %}" class="btn btn-primary">+ Add Exercise</a>
+</div>
+
+<div class="card">
+    {% if exercises %}
+    <table>
+        <thead>
+            <tr>
+                <th>Exercise</th>
+                <th>Muscle Group</th>
+                <th>Personal Best</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for exercise in exercises %}
+            <tr>
+                <td>
+                    <a href="{% url 'exercise_detail' exercise.pk %}">
+                        <strong>{{ exercise.name }}</strong>
+                    </a>
+                </td>
+                <td>
+                    {% if exercise.muscle_group %}
+                    <span class="badge badge-primary">{{ exercise.muscle_group }}</span>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    {% with pb=exercise.get_personal_best_weight %}
+                    {% if pb %}
+                    <span class="badge badge-success">{{ pb.weight }} kg × {{ pb.reps }}</span>
+                    {% else %}
+                    <span style="color: var(--gray-500);">No data</span>
+                    {% endif %}
+                    {% endwith %}
+                </td>
+                <td>
+                    <a href="{% url 'exercise_detail' exercise.pk %}" class="btn btn-secondary btn-sm">View</a>
+                    <a href="{% url 'exercise_delete' exercise.pk %}" class="btn btn-danger btn-sm">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <h3>No exercises yet!</h3>
+        <p>Add exercises to start tracking your workouts.</p>
+        <a href="{% url 'exercise_create' %}" class="btn btn-primary">Add First Exercise</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

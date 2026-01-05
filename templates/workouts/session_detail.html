@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}Workout {{ session.date|date:"M d, Y" }} - Gym Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ session.date|date:"l, F d, Y" }}</h1>
+        {% if session.duration_minutes %}
+        <span class="badge badge-primary">{{ session.duration_minutes }} minutes</span>
+        {% endif %}
+    </div>
+    <div>
+        <a href="{% url 'add_set' session.pk %}" class="btn btn-primary">+ Add Set</a>
+        <a href="{% url 'session_delete' session.pk %}" class="btn btn-danger">Delete</a>
+    </div>
+</div>
+
+{% if session.notes %}
+<div class="card">
+    <p><strong>Notes:</strong> {{ session.notes }}</p>
+</div>
+{% endif %}
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value">{{ session.sets.count }}</div>
+        <div class="stat-label">Total Sets</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ sets_by_exercise|length }}</div>
+        <div class="stat-label">Exercises</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ total_volume|floatformat:0 }}</div>
+        <div class="stat-label">Volume (kg)</div>
+    </div>
+</div>
+
+{% if sets_by_exercise %}
+    {% for exercise_name, sets in sets_by_exercise.items %}
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">{{ exercise_name }}</h2>
+            <span class="badge badge-primary">{{ sets|length }} sets</span>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Set</th>
+                    <th>Weight (kg)</th>
+                    <th>Reps</th>
+                    <th>Volume</th>
+                    <th>Notes</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for set in sets %}
+                <tr {% if set.is_personal_best %}class="pb-highlight"{% endif %}>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        <strong>{{ set.weight }}</strong>
+                        {% if set.is_personal_best %}
+                        <span class="badge badge-warning">PB!</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ set.reps }}</td>
+                    <td>{{ set.get_volume|floatformat:0 }} kg</td>
+                    <td>{{ set.notes|default:"-" }}</td>
+                    <td>
+                        <form method="post" action="{% url 'delete_set' set.pk %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this set?')">×</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+{% else %}
+<div class="card">
+    <div class="empty-state">
+        <h3>No sets recorded yet!</h3>
+        <p>Add sets to start tracking this workout.</p>
+        <a href="{% url 'add_set' session.pk %}" class="btn btn-primary">Add First Set</a>
+    </div>
+</div>
+{% endif %}
+
+<div style="margin-top: 2rem;">
+    <a href="{% url 'session_list' %}" class="btn btn-secondary">← Back to Sessions</a>
+</div>
+{% endblock %}

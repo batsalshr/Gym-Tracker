@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Gym Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Dashboard</h1>
+    <a href="{% url 'session_create' %}" class="btn btn-primary">+ New Workout</a>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value">{{ total_sessions }}</div>
+        <div class="stat-label">Total Sessions</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ total_sets }}</div>
+        <div class="stat-label">Total Sets</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ exercises|length }}</div>
+        <div class="stat-label">Exercises Tracked</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Recent Workouts</h2>
+        <a href="{% url 'session_list' %}" class="btn btn-secondary btn-sm">View All</a>
+    </div>
+    
+    {% if recent_sessions %}
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Exercises</th>
+                <th>Sets</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for session in recent_sessions %}
+            <tr>
+                <td>
+                    <a href="{% url 'session_detail' session.pk %}">
+                        {{ session.date|date:"M d, Y" }}
+                    </a>
+                    {% if session.duration_minutes %}
+                    <span class="badge badge-primary">{{ session.duration_minutes }} min</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% for exercise in session.get_exercises_performed %}
+                    <span class="badge badge-primary">{{ exercise.name }}</span>
+                    {% empty %}
+                    <span class="badge badge-secondary">No exercises</span>
+                    {% endfor %}
+                </td>
+                <td>{{ session.sets.count }}</td>
+                <td>
+                    <a href="{% url 'session_detail' session.pk %}" class="btn btn-secondary btn-sm">View</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <h3>No workouts yet!</h3>
+        <p>Start tracking your gym sessions by creating your first workout.</p>
+        <a href="{% url 'session_create' %}" class="btn btn-primary">Create First Workout</a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Top Exercises</h2>
+        <a href="{% url 'exercise_list' %}" class="btn btn-secondary btn-sm">View All</a>
+    </div>
+    
+    {% if exercises %}
+    <table>
+        <thead>
+            <tr>
+                <th>Exercise</th>
+                <th>Sets Logged</th>
+                <th>Best Weight</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for exercise in exercises %}
+            <tr>
+                <td>
+                    <a href="{% url 'exercise_detail' exercise.pk %}">{{ exercise.name }}</a>
+                    {% if exercise.muscle_group %}
+                    <span class="badge badge-primary">{{ exercise.muscle_group }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ exercise.set_count }}</td>
+                <td>
+                    {% if exercise.max_weight %}
+                    {{ exercise.max_weight }} kg
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'exercise_detail' exercise.pk %}" class="btn btn-secondary btn-sm">Details</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <h3>No exercises yet!</h3>
+        <p>Add exercises to start tracking your progress.</p>
+        <a href="{% url 'exercise_create' %}" class="btn btn-primary">Add Exercise</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

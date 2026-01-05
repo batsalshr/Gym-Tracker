@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block title %}New Workout - Gym Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Log New Workout</h1>
+</div>
+
+<form method="post" id="workout-form">
+    {% csrf_token %}
+    
+    <div class="card">
+        <h2 class="card-title" style="margin-bottom: 1rem;">Session Details</h2>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 1rem;">
+            <div class="form-group">
+                <label>Date</label>
+                {{ session_form.date }}
+            </div>
+            <div class="form-group">
+                <label>Duration (minutes)</label>
+                {{ session_form.duration_minutes }}
+            </div>
+            <div class="form-group">
+                <label>Notes</label>
+                {{ session_form.notes }}
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Sets</h2>
+            <button type="button" class="btn btn-success" onclick="addSetRow()">+ Add Set</button>
+        </div>
+
+        <div id="sets-container">
+            <!-- Set rows will be added here -->
+        </div>
+
+        <p style="margin-top: 1rem; font-size: 0.875rem; color: var(--gray-500);">
+            Add multiple sets for your workout. You can add more sets after saving too.
+        </p>
+    </div>
+
+    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+        <button type="submit" class="btn btn-primary">Save Workout</button>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+
+<!-- Template for set row -->
+<template id="set-row-template">
+    <div class="set-entry">
+        <select name="exercise" class="form-control exercise-select" required>
+            <option value="">Select Exercise</option>
+            {% for exercise in exercises %}
+            <option value="{{ exercise.id }}">{{ exercise.name }}</option>
+            {% endfor %}
+        </select>
+        <input type="number" name="weight" class="form-control" placeholder="kg" step="0.5" min="0" required>
+        <input type="number" name="reps" class="form-control" placeholder="reps" min="1" required>
+        <input type="text" name="set_notes" class="form-control" placeholder="Notes (optional)">
+        <button type="button" class="btn btn-danger btn-sm" onclick="removeSetRow(this)">×</button>
+    </div>
+</template>
+
+{% if not exercises %}
+<div class="card" style="background-color: #fef3c7; border-color: #f59e0b;">
+    <p><strong>Note:</strong> You haven't created any exercises yet. 
+        <a href="{% url 'exercise_create' %}">Create exercises first</a> to start logging sets.
+    </p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let setCount = 0;
+
+    function addSetRow() {
+        const container = document.getElementById('sets-container');
+        const template = document.getElementById('set-row-template');
+        const clone = template.content.cloneNode(true);
+        
+        // Update field names to make them unique (though we process them as arrays)
+        const exerciseSelect = clone.querySelector('.exercise-select');
+        
+        // Add event listener for progression suggestion
+        exerciseSelect.addEventListener('change', function() {
+            const exerciseId = this.value;
+            if (exerciseId) {
+                fetchProgression(exerciseId, this.closest('.set-entry'));
+            }
+        });
+        
+        container.appendChild(clone);
+        setCount++;
+    }
+
+    function removeSetRow(button) {
+        button.closest('.set-entry').remove();
+    }
+
+    async function fetchProgression(exerciseId, row) {
+        try {
+            const response = await fetch(`/api/exercises/${exerciseId}/progression/`);
+            const data = await response.json();
+            
+            if (data.success) {
+                const weightInput = row.querySelector('input[name="weight"]');
+                if (!weightInput.value) {
+                    weightInput.value = data.suggested_weight;
+                    weightInput.placeholder = data.message;
+                }
+            }
+        } catch (e) {
+            console.log('Could not fetch progression suggestion');
+        }
+    }
+
+    // Add initial rows
+    document.addEventListener('DOMContentLoaded', function() {
+        for (let i = 0; i < 3; i++) {
+            addSetRow();
+        }
+    });
+</script>
+{% endblock %}
