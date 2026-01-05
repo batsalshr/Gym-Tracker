@@ -1,172 +1,123 @@
-# 💪 GymTracker
+# 💪 Gym Tracker
 
-A clean, modern Django app for tracking your gym workouts and personal bests.
-
-![Python](https://img.shields.io/badge/Python-3.10+-blue) ![Django](https://img.shields.io/badge/Django-4.2-green)
+A clean, modern Django app for tracking gym workouts and personal bests. Features a vibey sidebar UI with smooth UX.
 
 ## ✨ Features
 
-- **Step-by-step workout logging** - Easy 3-step flow to log workouts
-- **Day type selection** - Chest Day, Back Day, Push/Pull, Full Body, etc.
-- **Smart weight suggestions** - Automatically suggests next weight based on your last performance
-- **Personal bests tracking** - See your PRs for each exercise
-- **Clean, modern UI** - Beautiful gradient design that works on desktop and mobile
-- **Fully local** - All data stored locally in SQLite
+- **Dashboard** - Welcome banner, weekly stats, recent workouts, key PRs
+- **Log Workout** - Two-step flow: select type → add exercises with sets
+- **History** - View all past workouts with expandable details
+- **Personal Bests** - Track PRs by weight or reps with progression suggestions
+- **Exercise Library** - Manage your exercises by muscle group
+- **Smart Suggestions** - Auto-suggests weight based on last performance
+
+## 🎨 Design
+
+- Vibrant blue accent (#3A86FF)
+- Soft gray backgrounds
+- Fixed sidebar navigation
+- Card-based layout with subtle shadows
+- Clean, Inter font typography
 
 ## 🚀 Quick Start
 
 ```bash
-# 1. Navigate to the project
+# 1. Navigate to project
 cd gym_tracker
 
 # 2. Create virtual environment (recommended)
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
 # 3. Install Django
 pip install -r requirements.txt
 
 # 4. Run migrations
-python manage.py migrate
+python3 manage.py migrate
 
-# 5. Start the server
-python manage.py runserver
+# 5. (Optional) Add sample exercises
+python3 manage.py shell -c "
+from workouts.models import Exercise
+exercises = [
+    ('Bench Press', 'chest'), ('Incline Bench Press', 'chest'), ('Dumbbell Fly', 'chest'),
+    ('Deadlift', 'back'), ('Barbell Row', 'back'), ('Lat Pulldown', 'back'), ('Pull-up', 'back'),
+    ('Squat', 'legs'), ('Leg Press', 'legs'), ('Leg Curl', 'legs'), ('Romanian Deadlift', 'legs'),
+    ('Overhead Press', 'shoulders'), ('Lateral Raise', 'shoulders'), ('Face Pull', 'shoulders'),
+    ('Barbell Curl', 'biceps'), ('Dumbbell Curl', 'biceps'), ('Hammer Curl', 'biceps'),
+    ('Tricep Pushdown', 'triceps'), ('Skull Crusher', 'triceps'), ('Dip', 'triceps'),
+]
+for name, muscle in exercises:
+    Exercise.objects.get_or_create(name=name, muscle_group=muscle)
+print(f'Created {Exercise.objects.count()} exercises')
+"
+
+# 6. Start server
+python3 manage.py runserver
 ```
 
-Then open **http://localhost:8000** in your browser!
+Open **http://127.0.0.1:8000**
 
 ## 📱 Workflow
 
 ### Logging a Workout
 
-**Step 1: Select Day Type**
-- Choose what you're training (Chest Day, Leg Day, Push Day, etc.)
-- Set the date (defaults to today)
-
-**Step 2: Add Exercise**  
-- Select an exercise from the dropdown (organized by muscle group)
-- Choose number of sets (default: 3)
-- See weight suggestions based on your last workout
-
-**Step 3: Enter Sets**
-- Enter weight (kg) and reps for each set
-- Add optional notes
-- Save and add more exercises, or finish workout
-
-### Example
-
-```
-Day: Chest Day
-Date: Today
-
-Exercise: Bench Press (3 sets)
-├── Set 1: 60kg × 10 reps
-├── Set 2: 65kg × 8 reps  
-└── Set 3: 70kg × 6 reps
-
-Exercise: Incline Bench (3 sets)
-├── Set 1: 50kg × 10 reps
-├── Set 2: 55kg × 8 reps
-└── Set 3: 55kg × 7 reps
-
-→ Save Workout ✓
-```
-
-## 📊 Features in Detail
-
-### Dashboard
-- Total workouts and sets count
-- This week's workout count
-- Recent workouts with quick access
-- Top 5 personal bests
-
-### Personal Bests
-- View all PRs sorted by weight or reps
-- See next suggested weight
-- Track when you hit each PR
+1. **Dashboard** → Click "Log New Workout"
+2. **Step 1** → Select workout type (Chest, Back, Push, Pull, etc.) and date
+3. **Step 2** → Add exercises:
+   - Select exercise from dropdown
+   - See weight suggestion based on last workout
+   - Enter weight/reps for each set
+   - Save & add more, or finish
 
 ### Progression System
-The app suggests weight increases based on your performance:
-- **8+ reps** → Add 2.5kg next time 📈
-- **5-7 reps** → Stay at current weight
-- **< 5 reps** → Consider reducing weight
 
-## 🏗️ Project Structure
+The app suggests weights based on your last performance:
+- **8+ reps** → Add 2.5kg next time 📈
+- **5-7 reps** → Keep same weight
+- **< 5 reps** → Consider reducing
+
+## 📁 Project Structure
 
 ```
 gym_tracker/
-├── gym_tracker/          # Django project config
-│   ├── settings.py       # Settings (SQLite, localhost)
-│   └── urls.py           # Main URL routing
+├── gym_tracker/          # Django config
+│   ├── settings.py
+│   └── urls.py
 ├── workouts/             # Main app
-│   ├── models.py         # Exercise, Workout, Set models
+│   ├── models.py         # Exercise, Workout, Set
 │   ├── views.py          # All views
-│   ├── urls.py           # App URLs
-│   └── admin.py          # Admin config
-├── templates/            # HTML templates
-│   ├── base.html         # Base template with styling
-│   └── workouts/         # App templates
+│   ├── urls.py           # URL routes
+│   └── admin.py
+├── templates/
+│   ├── base.html         # Sidebar layout + styles
+│   └── workouts/         # Page templates
+├── static/css/
 ├── manage.py
 └── requirements.txt
 ```
 
-## 📦 Models
+## 🗄️ Models
 
 ### Exercise
 - `name` - Exercise name
-- `muscle_group` - Chest, Back, Shoulders, Legs, Biceps, Triceps, Core
+- `muscle_group` - chest, back, shoulders, legs, biceps, triceps, core
 
 ### Workout
 - `date` - Workout date
-- `day_type` - Chest Day, Back Day, Push, Pull, Upper, Lower, Full Body
+- `day_type` - Workout type (Chest, Back, Push, Pull, etc.)
 - `notes` - Optional notes
 
 ### Set
-- `workout` - Link to workout
-- `exercise` - Link to exercise
-- `set_number` - Set number (1, 2, 3...)
+- `workout` - Foreign key to Workout
+- `exercise` - Foreign key to Exercise
 - `weight` - Weight in kg
 - `reps` - Number of reps
 - `notes` - Optional notes
 
-## 🎨 UI
-
-The app features a modern, gradient-based design with:
-- Responsive layout for mobile and desktop
-- Card-based components
-- Clear visual hierarchy
-- Emoji icons for quick recognition
-
-## 💾 Data Backup
-
-Your data is stored in `db.sqlite3`. To backup:
+## 💾 Backup
 
 ```bash
 cp db.sqlite3 backup_$(date +%Y%m%d).sqlite3
-```
-
-## 🔧 Customization
-
-### Add More Day Types
-Edit `workouts/models.py`:
-```python
-DAY_TYPES = [
-    ('chest', 'Chest Day'),
-    ('arms', 'Arms Day'),  # Add new type
-    # ...
-]
-```
-
-Then run migrations:
-```bash
-python manage.py makemigrations
-python manage.py migrate
-```
-
-### Change Weight Increment
-Edit `workouts/models.py` in the `get_suggested_weight` method:
-```python
-return last.weight + Decimal('2.5')  # Change to 1.25 or 5.0
 ```
 
 ---

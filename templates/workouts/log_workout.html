@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Log Workout - Gym Tracker{% endblock %}
+{% block page_title %}Log a Workout{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px;">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label class="form-label">Workout Type</label>
+            <select name="day_type" class="form-control" required>
+                <option value="">Select workout type...</option>
+                {% for value, label in day_types %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Date</label>
+            <input type="date" name="date" class="form-control" value="{{ today }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Notes (optional)</label>
+            <textarea name="notes" class="form-control" rows="2" placeholder="How are you feeling today?"></textarea>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-primary btn-lg">
+                Continue → Add Exercises
+            </button>
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary btn-lg">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

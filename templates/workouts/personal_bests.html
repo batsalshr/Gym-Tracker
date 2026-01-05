@@ -1,91 +1,66 @@
 {% extends 'base.html' %}
 
-{% block title %}Personal Bests - GymTracker{% endblock %}
+{% block title %}Personal Bests - Gym Tracker{% endblock %}
+{% block page_title %}Personal Records{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1 class="page-title">🏆 Personal Bests</h1>
-    <p class="page-subtitle">Your all-time records</p>
-</div>
-
-<!-- Sort Toggle -->
-<div class="card" style="display: flex; justify-content: center; gap: 0.5rem; padding: 1rem;">
-    <a href="?sort=weight" class="btn {% if sort_by == 'weight' %}btn-primary{% else %}btn-secondary{% endif %}">
-        Sort by Weight
-    </a>
-    <a href="?sort=reps" class="btn {% if sort_by == 'reps' %}btn-primary{% else %}btn-secondary{% endif %}">
-        Sort by Reps
-    </a>
-</div>
-
-<div class="card">
-    {% if personal_bests %}
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Rank</th>
-                    <th>Exercise</th>
-                    <th>Best Lift</th>
-                    <th>Date</th>
-                    <th>Next Target</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for pb in personal_bests %}
-                <tr>
-                    <td>
-                        {% if forloop.counter == 1 %}
-                        <span style="font-size: 1.5rem;">🥇</span>
-                        {% elif forloop.counter == 2 %}
-                        <span style="font-size: 1.5rem;">🥈</span>
-                        {% elif forloop.counter == 3 %}
-                        <span style="font-size: 1.5rem;">🥉</span>
-                        {% else %}
-                        <span style="color: var(--gray-400);">#{{ forloop.counter }}</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <strong>{{ pb.exercise.name }}</strong>
-                        <div style="font-size: 0.75rem; color: var(--gray-500);">{{ pb.exercise.get_muscle_group_display }}</div>
-                    </td>
-                    <td>
-                        <span class="badge badge-warning" style="font-size: 1rem; padding: 0.5rem 1rem;">
-                            {{ pb.weight }}kg × {{ pb.reps }}
-                        </span>
-                    </td>
-                    <td style="color: var(--gray-500);">{{ pb.date|date:"M d, Y" }}</td>
-                    <td>
-                        {% if pb.suggestion %}
-                        <span class="badge badge-success">{{ pb.suggestion }}kg</span>
-                        {% else %}
-                        -
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<!-- Toggle -->
+<div style="margin-bottom: 1.5rem;">
+    <div class="toggle-group">
+        <a href="?sort=weight" class="toggle-btn {% if sort_by == 'weight' %}active{% endif %}">Heaviest Weight</a>
+        <a href="?sort=reps" class="toggle-btn {% if sort_by == 'reps' %}active{% endif %}">Most Reps</a>
     </div>
-    {% else %}
+</div>
+
+{% if personal_bests %}
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th></th>
+                <th>Exercise</th>
+                <th>Record</th>
+                <th>Date</th>
+                <th>Next Target</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pb in personal_bests %}
+            <tr>
+                <td style="text-align: center; font-size: 1.25rem;">
+                    {% if forloop.counter == 1 %}🥇
+                    {% elif forloop.counter == 2 %}🥈
+                    {% elif forloop.counter == 3 %}🥉
+                    {% else %}<span style="color: var(--text-secondary);">#{{ forloop.counter }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <strong>{{ pb.exercise.name }}</strong>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">{{ pb.exercise.get_muscle_group_display }}</div>
+                </td>
+                <td>
+                    <span class="pb-value" style="font-size: 1.25rem;">{{ pb.weight }} kg</span>
+                    <span style="color: var(--text-secondary);">× {{ pb.reps }}</span>
+                </td>
+                <td style="color: var(--text-secondary);">{{ pb.date|date:"M d, Y" }}</td>
+                <td>
+                    {% if pb.suggestion %}
+                    <span class="badge badge-success">{{ pb.suggestion }} kg</span>
+                    {% else %}—{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card">
     <div class="empty-state">
         <div class="empty-state-icon">🏆</div>
         <h3>No personal bests yet</h3>
         <p>Complete workouts to start tracking your records!</p>
-        <a href="{% url 'new_workout' %}" class="btn btn-primary" style="margin-top: 1rem;">Start Workout</a>
+        <a href="{% url 'log_workout' %}" class="btn btn-primary" style="margin-top: 1rem;">Start Workout</a>
     </div>
-    {% endif %}
-</div>
-
-<!-- Tips -->
-{% if personal_bests %}
-<div class="card" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);">
-    <h3 style="margin-bottom: 0.75rem;">🎯 Progression Tips</h3>
-    <ul style="color: var(--gray-700); padding-left: 1.25rem; line-height: 1.8;">
-        <li><strong>Linear Progression:</strong> Add 2.5kg when you hit 8+ reps with good form</li>
-        <li><strong>Double Progression:</strong> First increase reps (5→8), then add weight</li>
-        <li><strong>Deload:</strong> If stuck for 2+ weeks, reduce weight by 10% and rebuild</li>
-    </ul>
 </div>
 {% endif %}
 {% endblock %}

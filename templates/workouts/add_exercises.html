@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Exercises - Gym Tracker{% endblock %}
+{% block page_title %}{{ workout.get_day_type_display }} - {{ workout.date|date:"M d, Y" }}{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'workout_detail' workout.id %}" class="btn btn-primary">
+    ✓ Finish Workout
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Already Logged Exercises -->
+{% if logged_exercises %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Logged Exercises</h2>
+        <span class="badge badge-success">{{ workout.get_total_sets }} sets</span>
+    </div>
+    
+    {% for name, data in logged_exercises.items %}
+    <div class="exercise-card">
+        <div class="exercise-header">
+            <span class="exercise-name">{{ name }}</span>
+            <span class="badge badge-primary">{{ data.sets|length }} sets</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+            {% for set in data.sets %}
+            <span style="background: var(--bg-card); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem;">
+                {{ set.weight }}kg × {{ set.reps }}
+                <form method="post" action="{% url 'delete_set' set.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" style="background: none; border: none; color: var(--danger); cursor: pointer; padding: 0 0.25rem;">×</button>
+                </form>
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Add Exercise Form -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">➕ Add Exercise</h2>
+    </div>
+    
+    <form method="post" id="exercise-form">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label class="form-label">Select Exercise</label>
+            <select name="exercise" class="form-control" required id="exercise-select">
+                <option value="">Choose an exercise...</option>
+                {% for group, exercises in exercises_by_group.items %}
+                <optgroup label="{{ group }}">
+                    {% for exercise in exercises %}
+                    <option value="{{ exercise.id }}">{{ exercise.name }}</option>
+                    {% endfor %}
+                </optgroup>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div id="suggestion-box" class="hint-box" style="display: none;">
+            <span>💡</span>
+            <span id="suggestion-text"></span>
+        </div>
+        
+        <div id="sets-container">
+            <div class="form-label" style="margin-bottom: 0.75rem;">Sets</div>
+            
+            <div class="set-row" style="font-weight: 500; color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase;">
+                <span>Set</span>
+                <span>Weight (kg)</span>
+                <span>Reps</span>
+                <span>Notes</span>
+                <span></span>
+            </div>
+            
+            <div id="sets-list">
+                <!-- Sets will be added here -->
+            </div>
+            
+            <button type="button" class="btn btn-secondary btn-sm" onclick="addSet()" style="margin-top: 0.5rem;">
+                + Add Set
+            </button>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap;">
+            <button type="submit" class="btn btn-primary">
+                Save & Add Another
+            </button>
+            <button type="submit" name="finish" class="btn btn-secondary">
+                Save & Finish
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Quick Tip -->
+<div class="card" style="background: var(--bg-main);">
+    <strong>💡 Quick Tips</strong>
+    <ul style="margin: 0.5rem 0 0 1.25rem; color: var(--text-secondary);">
+        <li>Hit 8+ reps? Increase weight by 2.5kg next time</li>
+        <li>Struggling at 5 reps? Keep the same weight</li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let setCount = 0;
+let suggestedWeight = null;
+
+function addSet() {
+    setCount++;
+    const setsList = document.getElementById('sets-list');
+    
+    const row = document.createElement('div');
+    row.className = 'set-row';
+    row.innerHTML = `
+        <span class="set-number">Set ${setCount}</span>
+        <input type="number" name="weight" class="form-control" placeholder="kg" step="0.5" min="0" required ${suggestedWeight && setCount === 1 ? `value="${suggestedWeight}"` : ''}>
+        <input type="number" name="reps" class="form-control" placeholder="reps" min="1" required>
+        <input type="text" name="set_notes" class="form-control" placeholder="Optional">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="removeSet(this)" ${setCount === 1 ? 'style="visibility: hidden;"' : ''}>×</button>
+    `;
+    
+    setsList.appendChild(row);
+}
+
+function removeSet(btn) {
+    btn.closest('.set-row').remove();
+    // Renumber sets
+    document.querySelectorAll('#sets-list .set-row').forEach((row, i) => {
+        row.querySelector('.set-number').textContent = `Set ${i + 1}`;
+    });
+    setCount--;
+}
+
+// Add initial sets
+for (let i = 0; i < 3; i++) addSet();
+
+// Fetch suggestion when exercise changes
+document.getElementById('exercise-select').addEventListener('change', async function() {
+    const exerciseId = this.value;
+    const suggestionBox = document.getElementById('suggestion-box');
+    const suggestionText = document.getElementById('suggestion-text');
+    
+    if (exerciseId) {
+        try {
+            const response = await fetch(`/api/exercise/${exerciseId}/suggestion/`);
+            const data = await response.json();
+            
+            if (data.last_weight) {
+                suggestedWeight = data.suggestion;
+                suggestionBox.style.display = 'flex';
+                suggestionText.textContent = `Last: ${data.last_weight}kg × ${data.last_reps} reps → Try ${data.suggestion}kg`;
+                
+                // Update first weight input if empty
+                const firstWeight = document.querySelector('#sets-list input[name="weight"]');
+                if (firstWeight && !firstWeight.value) {
+                    firstWeight.value = data.suggestion;
+                }
+            } else {
+                suggestionBox.style.display = 'none';
+                suggestedWeight = null;
+            }
+        } catch (e) {
+            suggestionBox.style.display = 'none';
+        }
+    } else {
+        suggestionBox.style.display = 'none';
+        suggestedWeight = null;
+    }
+});
+</script>
+{% endblock %}

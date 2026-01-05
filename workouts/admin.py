@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Exercise, Workout, WorkoutExercise, Set
+from .models import Exercise, Workout, Set
 
 @admin.register(Exercise)
 class ExerciseAdmin(admin.ModelAdmin):
@@ -11,11 +11,7 @@ class WorkoutAdmin(admin.ModelAdmin):
     list_display = ['date', 'day_type', 'get_total_sets']
     list_filter = ['day_type', 'date']
 
-@admin.register(WorkoutExercise)
-class WorkoutExerciseAdmin(admin.ModelAdmin):
-    list_display = ['workout', 'exercise', 'num_sets']
-
 @admin.register(Set)
 class SetAdmin(admin.ModelAdmin):
-    list_display = ['workout', 'exercise', 'set_number', 'weight', 'reps']
+    list_display = ['workout', 'exercise', 'weight', 'reps']
     list_filter = ['exercise']

@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}History - Gym Tracker{% endblock %}
+{% block page_title %}Workout History{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'log_workout' %}" class="btn btn-primary">+ Log Workout</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    {% if workouts %}
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Exercises</th>
+                <th>Sets</th>
+                <th>Volume</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for workout in workouts %}
+            <tr onclick="window.location='{% url 'workout_detail' workout.id %}'" style="cursor: pointer;">
+                <td>
+                    <strong>{{ workout.date|date:"M d, Y" }}</strong>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">{{ workout.date|date:"l" }}</div>
+                </td>
+                <td>
+                    <span class="badge badge-primary">{{ workout.get_day_type_display }}</span>
+                </td>
+                <td>
+                    {% for name, data in workout.get_exercises_summary.items %}
+                    {{ name }}{% if not forloop.last %}, {% endif %}
+                    {% empty %}
+                    <span style="color: var(--text-secondary);">—</span>
+                    {% endfor %}
+                </td>
+                <td>{{ workout.get_total_sets }}</td>
+                <td>{{ workout.get_total_volume|floatformat:0 }} kg</td>
+                <td>
+                    <a href="{% url 'workout_detail' workout.id %}" class="btn btn-ghost btn-sm">View →</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">📋</div>
+        <h3>No workouts yet</h3>
+        <p>Start logging your fitness journey!</p>
+        <a href="{% url 'log_workout' %}" class="btn btn-primary" style="margin-top: 1rem;">Log First Workout</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

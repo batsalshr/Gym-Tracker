@@ -1,107 +1,84 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ workout }} - GymTracker{% endblock %}
+{% block title %}{{ workout }} - Gym Tracker{% endblock %}
+{% block page_title %}{{ workout.get_day_type_display }}{% endblock %}
+
+{% block header_actions %}
+<div style="display: flex; gap: 0.5rem;">
+    <a href="{% url 'add_exercises' workout.id %}" class="btn btn-secondary">+ Add More</a>
+    <form method="post" action="{% url 'delete_workout' workout.id %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this workout?')">Delete</button>
+    </form>
+</div>
+{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1 class="page-title">{{ workout.get_day_type_display }}</h1>
-    <p class="page-subtitle">{{ workout.date|date:"l, F d, Y" }}</p>
-</div>
-
-<!-- Stats -->
+<!-- Workout Info -->
 <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
     <div class="stat-card">
-        <div class="stat-value">{{ exercises_data|length }}</div>
-        <div class="stat-label">Exercises</div>
+        <div class="stat-label">Date</div>
+        <div class="stat-value" style="font-size: 1.5rem;">{{ workout.date|date:"M d, Y" }}</div>
     </div>
-    <div class="stat-card success">
-        <div class="stat-value">{{ workout.get_total_sets }}</div>
+    <div class="stat-card">
         <div class="stat-label">Total Sets</div>
+        <div class="stat-value accent">{{ workout.get_total_sets }}</div>
     </div>
-    <div class="stat-card warning">
-        <div class="stat-value">{{ total_volume|floatformat:0 }}</div>
-        <div class="stat-label">Volume (kg)</div>
+    <div class="stat-card">
+        <div class="stat-label">Total Volume</div>
+        <div class="stat-value">{{ total_volume|floatformat:0 }} kg</div>
     </div>
 </div>
 
 {% if workout.notes %}
 <div class="card">
-    <p><strong>Notes:</strong> {{ workout.notes }}</p>
+    <strong>Notes:</strong> {{ workout.notes }}
 </div>
 {% endif %}
 
 <!-- Exercises -->
-{% for data in exercises_data %}
+{% for name, data in exercises_data.items %}
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">{{ data.exercise.name }}</h2>
-        <span class="badge badge-primary">{{ data.sets|length }}/{{ data.planned_sets }} sets</span>
+        <h2 class="card-title">{{ name }}</h2>
+        <span class="badge badge-primary">{{ data.sets|length }} sets</span>
     </div>
     
-    {% if data.sets %}
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Set</th>
-                    <th>Weight</th>
-                    <th>Reps</th>
-                    <th>Volume</th>
-                    <th>Notes</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for set in data.sets %}
-                <tr>
-                    <td><strong>{{ set.set_number }}</strong></td>
-                    <td>{{ set.weight }} kg</td>
-                    <td>{{ set.reps }}</td>
-                    <td style="color: var(--gray-500);">{{ set.get_volume|floatformat:0 }} kg</td>
-                    <td style="color: var(--gray-500);">{{ set.notes|default:"-" }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-            <tfoot>
-                <tr style="background: var(--gray-50);">
-                    <td colspan="3"><strong>Total Volume</strong></td>
-                    <td colspan="2"><strong>{{ data.total_volume|floatformat:0 }} kg</strong></td>
-                </tr>
-            </tfoot>
-        </table>
-    </div>
-    {% else %}
-    <p style="color: var(--gray-500);">No sets recorded yet.</p>
-    {% endif %}
-    
-    <div style="margin-top: 1rem;">
-        <a href="{% url 'enter_sets' workout.id data.exercise.id %}" class="btn btn-secondary btn-sm">Edit Sets</a>
-    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Set</th>
+                <th>Weight</th>
+                <th>Reps</th>
+                <th>Volume</th>
+                <th>Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for set in data.sets %}
+            <tr>
+                <td><strong>{{ forloop.counter }}</strong></td>
+                <td>{{ set.weight }} kg</td>
+                <td>{{ set.reps }}</td>
+                <td style="color: var(--text-secondary);">{{ set.get_volume|floatformat:0 }} kg</td>
+                <td style="color: var(--text-secondary);">{{ set.notes|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% empty %}
 <div class="card">
     <div class="empty-state">
         <div class="empty-state-icon">🏋️</div>
-        <h3>No exercises yet</h3>
+        <h3>No exercises logged</h3>
         <p>Add exercises to this workout</p>
+        <a href="{% url 'add_exercises' workout.id %}" class="btn btn-primary" style="margin-top: 1rem;">Add Exercises</a>
     </div>
 </div>
 {% endfor %}
 
-<!-- Actions -->
-<div class="card" style="display: flex; justify-content: space-between; align-items: center;">
-    <a href="{% url 'add_exercise' workout.id %}" class="btn btn-primary">
-        + Add Another Exercise
-    </a>
-    
-    <form method="post" action="{% url 'delete_workout' workout.id %}" style="display: inline;">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this workout?')">
-            🗑️ Delete Workout
-        </button>
-    </form>
-</div>
-
-<div style="margin-top: 1rem;">
-    <a href="{% url 'workout_list' %}" class="btn btn-secondary">← Back to All Workouts</a>
+<div style="margin-top: 1.5rem;">
+    <a href="{% url 'history' %}" class="btn btn-ghost">← Back to History</a>
 </div>
 {% endblock %}
