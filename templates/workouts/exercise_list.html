@@ -1,62 +1,58 @@
 {% extends 'base.html' %}
 
-{% block title %}Exercises - Gym Tracker{% endblock %}
+{% block title %}Exercises - GymTracker{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1 class="page-title">Exercises</h1>
-    <a href="{% url 'exercise_create' %}" class="btn btn-primary">+ Add Exercise</a>
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h1 class="page-title">Exercises</h1>
+        <p class="page-subtitle">Your exercise library</p>
+    </div>
+    <a href="{% url 'add_exercise_type' %}" class="btn btn-primary">+ Add Exercise</a>
 </div>
 
+{% for group, exercises in exercises_by_group.items %}
 <div class="card">
-    {% if exercises %}
-    <table>
-        <thead>
-            <tr>
-                <th>Exercise</th>
-                <th>Muscle Group</th>
-                <th>Personal Best</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for exercise in exercises %}
-            <tr>
-                <td>
-                    <a href="{% url 'exercise_detail' exercise.pk %}">
-                        <strong>{{ exercise.name }}</strong>
-                    </a>
-                </td>
-                <td>
-                    {% if exercise.muscle_group %}
-                    <span class="badge badge-primary">{{ exercise.muscle_group }}</span>
-                    {% else %}
-                    -
-                    {% endif %}
-                </td>
-                <td>
-                    {% with pb=exercise.get_personal_best_weight %}
-                    {% if pb %}
-                    <span class="badge badge-success">{{ pb.weight }} kg × {{ pb.reps }}</span>
-                    {% else %}
-                    <span style="color: var(--gray-500);">No data</span>
-                    {% endif %}
-                    {% endwith %}
-                </td>
-                <td>
-                    <a href="{% url 'exercise_detail' exercise.pk %}" class="btn btn-secondary btn-sm">View</a>
-                    <a href="{% url 'exercise_delete' exercise.pk %}" class="btn btn-danger btn-sm">Delete</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <div class="empty-state">
-        <h3>No exercises yet!</h3>
-        <p>Add exercises to start tracking your workouts.</p>
-        <a href="{% url 'exercise_create' %}" class="btn btn-primary">Add First Exercise</a>
+    <div class="card-header">
+        <h2 class="card-title">{{ group }}</h2>
+        <span class="badge badge-primary">{{ exercises|length }} exercises</span>
     </div>
-    {% endif %}
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Exercise</th>
+                    <th>Times Performed</th>
+                    <th>Personal Best</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for data in exercises %}
+                <tr>
+                    <td><strong>{{ data.exercise.name }}</strong></td>
+                    <td>{{ data.set_count }} sets</td>
+                    <td>
+                        {% if data.pb %}
+                        <span class="badge badge-warning">{{ data.pb.weight }}kg × {{ data.pb.reps }}</span>
+                        {% else %}
+                        <span style="color: var(--gray-400);">No data yet</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
+{% empty %}
+<div class="card">
+    <div class="empty-state">
+        <div class="empty-state-icon">📋</div>
+        <h3>No exercises yet</h3>
+        <p>Add exercises to start tracking!</p>
+        <a href="{% url 'add_exercise_type' %}" class="btn btn-primary" style="margin-top: 1rem;">Add First Exercise</a>
+    </div>
+</div>
+{% endfor %}
 {% endblock %}

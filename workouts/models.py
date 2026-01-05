@@ -1,191 +1,136 @@
-"""
-Models for gym workout tracking.
-
-Exercise - Types of exercises (Bench Press, Deadlift, etc.)
-WorkoutSession - Individual workout sessions linked to a date
-Set - Individual sets within a session, linked to an exercise
-"""
-
+"""Models for gym workout tracking."""
 from django.db import models
 from django.utils import timezone
 from decimal import Decimal
 
 
 class Exercise(models.Model):
-    """
-    Represents a type of exercise (e.g., Bench Press, Deadlift, Squat).
-    """
-    name = models.CharField(max_length=100, unique=True)
-    description = models.TextField(blank=True, help_text="Optional description or notes about the exercise")
-    muscle_group = models.CharField(
-        max_length=50, 
-        blank=True,
-        help_text="Primary muscle group targeted (e.g., Chest, Back, Legs)"
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
+    """An exercise type (e.g., Bench Press, Squat)."""
+    
+    MUSCLE_GROUPS = [
+        ('chest', 'Chest'),
+        ('back', 'Back'),
+        ('shoulders', 'Shoulders'),
+        ('legs', 'Legs'),
+        ('biceps', 'Biceps'),
+        ('triceps', 'Triceps'),
+        ('core', 'Core'),
+    ]
+    
+    name = models.CharField(max_length=100)
+    muscle_group = models.CharField(max_length=20, choices=MUSCLE_GROUPS)
+    
     class Meta:
-        ordering = ['name']
-
+        ordering = ['muscle_group', 'name']
+        unique_together = ['name', 'muscle_group']
+    
     def __str__(self):
         return self.name
-
-    def get_personal_best_weight(self):
-        """
-        Returns the personal best (highest weight lifted) for this exercise.
-        Returns a dictionary with weight, reps, and the date achieved.
-        """
-        best_set = self.sets.order_by('-weight', '-reps').first()
-        if best_set:
-            return {
-                'weight': best_set.weight,
-                'reps': best_set.reps,
-                'date': best_set.session.date,
-                'set': best_set
-            }
-        return None
-
-    def get_personal_best_reps(self):
-        """
-        Returns the best set by highest reps for this exercise.
-        Returns a dictionary with weight, reps, and the date achieved.
-        """
-        best_set = self.sets.order_by('-reps', '-weight').first()
-        if best_set:
-            return {
-                'weight': best_set.weight,
-                'reps': best_set.reps,
-                'date': best_set.session.date,
-                'set': best_set
-            }
-        return None
-
-    def get_suggested_progression(self):
-        """
-        Suggests weight progression based on the last workout.
-        Rule: If you completed 8+ reps at a weight, suggest increasing by 2.5kg.
-        If you completed less, suggest staying at the same weight.
-        """
-        last_set = self.sets.order_by('-session__date', '-id').first()
-        if last_set:
-            current_weight = last_set.weight
-            last_reps = last_set.reps
-            
-            if last_reps >= 8:
-                # Suggest 2.5kg increase (standard progression)
-                suggested_weight = current_weight + Decimal('2.5')
-                message = f"Great progress! Try {suggested_weight}kg (up from {current_weight}kg × {last_reps} reps)"
-            elif last_reps >= 5:
-                # Stay at same weight, aim for more reps
-                suggested_weight = current_weight
-                message = f"Aim for {current_weight}kg × 8 reps (last: {last_reps} reps)"
-            else:
-                # Consider deloading
-                suggested_weight = max(current_weight - Decimal('2.5'), Decimal('0'))
-                message = f"Consider {suggested_weight}kg for better form (struggling at {current_weight}kg × {last_reps})"
-            
-            return {
-                'suggested_weight': suggested_weight,
-                'last_weight': current_weight,
-                'last_reps': last_reps,
-                'last_date': last_set.session.date,
-                'message': message
-            }
-        return None
-
-    def get_recent_history(self, limit=5):
-        """
-        Returns the most recent sets for this exercise.
-        """
-        return self.sets.select_related('session').order_by('-session__date', '-id')[:limit]
+    
+    def get_personal_best(self):
+        """Get the heaviest weight lifted for this exercise."""
+        best = self.sets.order_by('-weight').first()
+        return best
+    
+    def get_last_workout(self):
+        """Get the most recent sets for this exercise."""
+        return self.sets.order_by('-workout__date', '-id').first()
+    
+    def get_suggested_weight(self):
+        """Suggest next weight based on last performance."""
+        last = self.get_last_workout()
+        if not last:
+            return None
+        
+        if last.reps >= 8:
+            return last.weight + Decimal('2.5')
+        elif last.reps >= 5:
+            return last.weight
+        else:
+            return max(last.weight - Decimal('2.5'), Decimal('0'))
 
 
-class WorkoutSession(models.Model):
-    """
-    Represents a single workout session on a specific date.
-    """
+class Workout(models.Model):
+    """A workout session."""
+    
+    DAY_TYPES = [
+        ('chest', 'Chest Day'),
+        ('back', 'Back Day'),
+        ('shoulders', 'Shoulder Day'),
+        ('legs', 'Leg Day'),
+        ('biceps', 'Biceps Day'),
+        ('triceps', 'Triceps Day'),
+        ('push', 'Push Day'),
+        ('pull', 'Pull Day'),
+        ('upper', 'Upper Body'),
+        ('lower', 'Lower Body'),
+        ('full', 'Full Body'),
+    ]
+    
     date = models.DateField(default=timezone.now)
-    notes = models.TextField(blank=True, help_text="Optional notes about the session")
-    duration_minutes = models.PositiveIntegerField(
-        null=True, 
-        blank=True,
-        help_text="Workout duration in minutes"
-    )
+    day_type = models.CharField(max_length=20, choices=DAY_TYPES)
+    notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
+    
     class Meta:
         ordering = ['-date', '-created_at']
-
+    
     def __str__(self):
-        return f"Workout on {self.date.strftime('%Y-%m-%d')}"
-
-    def get_exercises_performed(self):
-        """
-        Returns a list of unique exercises performed in this session.
-        """
-        return Exercise.objects.filter(sets__session=self).distinct()
-
+        return f"{self.get_day_type_display()} - {self.date.strftime('%b %d, %Y')}"
+    
+    def get_total_sets(self):
+        return self.sets.count()
+    
     def get_total_volume(self):
-        """
-        Calculates total volume (weight × reps) for the session.
-        """
-        total = sum(s.weight * s.reps for s in self.sets.all())
-        return total
-
-    def get_sets_by_exercise(self):
-        """
-        Returns sets grouped by exercise for display.
-        """
+        """Total weight × reps."""
+        return sum(s.weight * s.reps for s in self.sets.all())
+    
+    def get_exercises_summary(self):
+        """Get unique exercises with set counts."""
         exercises = {}
-        for set_obj in self.sets.select_related('exercise').order_by('exercise__name', 'id'):
-            exercise_name = set_obj.exercise.name
-            if exercise_name not in exercises:
-                exercises[exercise_name] = []
-            exercises[exercise_name].append(set_obj)
+        for s in self.sets.select_related('exercise').all():
+            if s.exercise.name not in exercises:
+                exercises[s.exercise.name] = {'sets': 0, 'exercise': s.exercise}
+            exercises[s.exercise.name]['sets'] += 1
         return exercises
 
 
-class Set(models.Model):
-    """
-    Represents a single set within a workout session.
-    """
-    session = models.ForeignKey(
-        WorkoutSession, 
-        on_delete=models.CASCADE, 
-        related_name='sets'
-    )
-    exercise = models.ForeignKey(
-        Exercise, 
-        on_delete=models.CASCADE, 
-        related_name='sets'
-    )
-    weight = models.DecimalField(
-        max_digits=6, 
-        decimal_places=2,
-        help_text="Weight in kg"
-    )
-    reps = models.PositiveIntegerField(help_text="Number of repetitions")
-    notes = models.TextField(blank=True, help_text="Optional notes (e.g., 'felt easy', 'form breakdown')")
-    created_at = models.DateTimeField(auto_now_add=True)
-
+class WorkoutExercise(models.Model):
+    """Links a workout to an exercise with number of sets planned."""
+    workout = models.ForeignKey(Workout, on_delete=models.CASCADE, related_name='workout_exercises')
+    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
+    num_sets = models.PositiveIntegerField(default=3)
+    order = models.PositiveIntegerField(default=0)
+    
     class Meta:
-        ordering = ['id']
-
+        ordering = ['order']
+    
     def __str__(self):
-        return f"{self.exercise.name}: {self.weight}kg × {self.reps}"
+        return f"{self.exercise.name} - {self.num_sets} sets"
+    
+    def get_completed_sets(self):
+        """Get sets that have been logged."""
+        return Set.objects.filter(workout=self.workout, exercise=self.exercise)
+    
+    def sets_remaining(self):
+        return self.num_sets - self.get_completed_sets().count()
 
+
+class Set(models.Model):
+    """A single set within a workout."""
+    workout = models.ForeignKey(Workout, on_delete=models.CASCADE, related_name='sets')
+    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE, related_name='sets')
+    set_number = models.PositiveIntegerField(default=1)
+    weight = models.DecimalField(max_digits=6, decimal_places=2)
+    reps = models.PositiveIntegerField()
+    notes = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['set_number']
+    
+    def __str__(self):
+        return f"Set {self.set_number}: {self.weight}kg × {self.reps}"
+    
     def get_volume(self):
-        """
-        Returns the volume for this set (weight × reps).
-        """
         return self.weight * self.reps
-
-    def is_personal_best(self):
-        """
-        Checks if this set is the personal best (by weight) for the exercise.
-        """
-        pb = self.exercise.get_personal_best_weight()
-        if pb and pb['set'].id == self.id:
-            return True
-        return False

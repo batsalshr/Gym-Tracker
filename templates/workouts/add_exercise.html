@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Exercise - GymTracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">{{ workout.get_day_type_display }}</h1>
+    <p class="page-subtitle">Step 2: Add exercises to your workout</p>
+</div>
+
+<!-- Already Added Exercises -->
+{% if added_exercises %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">✓ Added Exercises</h2>
+    </div>
+    
+    {% for we in added_exercises %}
+    <div class="workout-card">
+        <div style="flex: 1;">
+            <strong>{{ we.exercise.name }}</strong>
+            <span class="badge badge-primary" style="margin-left: 0.5rem;">{{ we.num_sets }} sets</span>
+        </div>
+        <a href="{% url 'enter_sets' workout.id we.exercise.id %}" class="btn btn-secondary btn-sm">Edit Sets</a>
+    </div>
+    {% endfor %}
+    
+    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--gray-100);">
+        <a href="{% url 'workout_detail' workout.id %}" class="btn btn-success">
+            ✓ Finish Workout
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Add New Exercise -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">➕ Add Exercise</h2>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label class="form-label">Select Exercise</label>
+            <select name="exercise" class="form-control" required id="exercise-select">
+                <option value="">-- Choose an exercise --</option>
+                {% for group, exercises in exercises_by_group.items %}
+                <optgroup label="{{ group }}">
+                    {% for exercise in exercises %}
+                    <option value="{{ exercise.id }}">{{ exercise.name }}</option>
+                    {% endfor %}
+                </optgroup>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div id="suggestion-box" class="progress-hint" style="display: none;">
+            <span>💡</span>
+            <span id="suggestion-text"></span>
+        </div>
+        
+        <div class="form-group" style="margin-top: 1.5rem;">
+            <label class="form-label">Number of Sets</label>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <input type="number" name="num_sets" class="form-control" value="3" min="1" max="10" style="width: 100px;" required>
+                <span style="color: var(--gray-500);">sets</span>
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button type="submit" class="btn btn-primary btn-lg">
+                Continue → Enter Sets
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Can't find your exercise? -->
+<div class="card" style="background: var(--gray-50);">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <strong>Can't find your exercise?</strong>
+            <p style="color: var(--gray-500); margin-top: 0.25rem; font-size: 0.875rem;">Add a new exercise to your library</p>
+        </div>
+        <a href="{% url 'add_exercise_type' %}" class="btn btn-secondary">+ Add New Exercise</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('exercise-select').addEventListener('change', async function() {
+    const exerciseId = this.value;
+    const suggestionBox = document.getElementById('suggestion-box');
+    const suggestionText = document.getElementById('suggestion-text');
+    
+    if (exerciseId) {
+        try {
+            const response = await fetch(`/api/exercise/${exerciseId}/suggestion/`);
+            const data = await response.json();
+            
+            if (data.last_weight) {
+                suggestionBox.style.display = 'flex';
+                suggestionText.textContent = `Last workout: ${data.last_weight}kg × ${data.last_reps} reps. Suggested: ${data.suggestion}kg`;
+            } else {
+                suggestionBox.style.display = 'none';
+            }
+        } catch (e) {
+            suggestionBox.style.display = 'none';
+        }
+    } else {
+        suggestionBox.style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

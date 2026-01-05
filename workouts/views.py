@@ -1,282 +1,293 @@
-"""
-Views for gym workout tracking.
-Provides functionality to:
-- List all workout sessions
-- View session details
-- Create new sessions with sets
-- View personal bests per exercise
-- Manage exercises
-"""
-
+"""Views for gym workout tracking."""
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
-from django.views.generic import ListView, DetailView, CreateView, DeleteView
-from django.urls import reverse_lazy, reverse
-from django.contrib import messages
 from django.http import JsonResponse
-from django.db.models import Max, Count
+from django.db.models import Max, Count, Sum
 from django.utils import timezone
+from django.contrib import messages
 
-from .models import Exercise, WorkoutSession, Set
-from .forms import ExerciseForm, WorkoutSessionForm, SetForm, QuickSetFormSet
+from .models import Exercise, Workout, WorkoutExercise, Set
 
 
 class DashboardView(View):
-    """
-    Main dashboard showing recent workouts and quick stats.
-    """
+    """Main dashboard with overview."""
+    
     def get(self, request):
-        recent_sessions = WorkoutSession.objects.prefetch_related('sets__exercise')[:5]
-        exercises = Exercise.objects.annotate(
-            set_count=Count('sets'),
-            max_weight=Max('sets__weight')
-        ).order_by('-set_count')[:10]
+        # Recent workouts
+        recent_workouts = Workout.objects.prefetch_related('sets__exercise')[:5]
         
-        # Calculate some stats
-        total_sessions = WorkoutSession.objects.count()
+        # Stats
+        total_workouts = Workout.objects.count()
         total_sets = Set.objects.count()
         
+        # This week's workouts
+        from datetime import timedelta
+        week_ago = timezone.now().date() - timedelta(days=7)
+        this_week = Workout.objects.filter(date__gte=week_ago).count()
+        
+        # Personal bests (top 5 by weight)
+        personal_bests = []
+        exercises_with_sets = Exercise.objects.annotate(
+            max_weight=Max('sets__weight'),
+            set_count=Count('sets')
+        ).filter(set_count__gt=0).order_by('-max_weight')[:5]
+        
+        for ex in exercises_with_sets:
+            pb = ex.get_personal_best()
+            if pb:
+                personal_bests.append({
+                    'exercise': ex,
+                    'weight': pb.weight,
+                    'reps': pb.reps,
+                    'date': pb.workout.date
+                })
+        
         context = {
-            'recent_sessions': recent_sessions,
-            'exercises': exercises,
-            'total_sessions': total_sessions,
+            'recent_workouts': recent_workouts,
+            'total_workouts': total_workouts,
             'total_sets': total_sets,
+            'this_week': this_week,
+            'personal_bests': personal_bests,
         }
         return render(request, 'workouts/dashboard.html', context)
 
 
-class SessionListView(ListView):
-    """
-    List all workout sessions.
-    """
-    model = WorkoutSession
-    template_name = 'workouts/session_list.html'
-    context_object_name = 'sessions'
-    paginate_by = 20
-
-    def get_queryset(self):
-        return WorkoutSession.objects.prefetch_related('sets__exercise').all()
-
-
-class SessionDetailView(DetailView):
-    """
-    View details of a specific workout session.
-    """
-    model = WorkoutSession
-    template_name = 'workouts/session_detail.html'
-    context_object_name = 'session'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['sets_by_exercise'] = self.object.get_sets_by_exercise()
-        context['total_volume'] = self.object.get_total_volume()
-        return context
-
-
-class SessionCreateView(View):
-    """
-    Create a new workout session with multiple sets.
-    """
+class NewWorkoutView(View):
+    """Step 1: Create new workout - select day type and date."""
+    
     def get(self, request):
-        session_form = WorkoutSessionForm(initial={'date': timezone.now().date()})
-        exercises = Exercise.objects.all()
-        
         context = {
-            'session_form': session_form,
-            'exercises': exercises,
+            'day_types': Workout.DAY_TYPES,
+            'today': timezone.now().date().isoformat(),
         }
-        return render(request, 'workouts/session_create.html', context)
-
+        return render(request, 'workouts/new_workout.html', context)
+    
     def post(self, request):
-        session_form = WorkoutSessionForm(request.POST)
+        day_type = request.POST.get('day_type')
+        date = request.POST.get('date') or timezone.now().date()
+        notes = request.POST.get('notes', '')
         
-        if session_form.is_valid():
-            session = session_form.save()
-            
-            # Process sets from the form
-            exercise_ids = request.POST.getlist('exercise')
-            weights = request.POST.getlist('weight')
-            reps_list = request.POST.getlist('reps')
-            notes_list = request.POST.getlist('set_notes')
-            
-            sets_created = 0
-            for i in range(len(exercise_ids)):
-                if exercise_ids[i] and weights[i] and reps_list[i]:
-                    try:
-                        Set.objects.create(
-                            session=session,
-                            exercise_id=int(exercise_ids[i]),
-                            weight=float(weights[i]),
-                            reps=int(reps_list[i]),
-                            notes=notes_list[i] if i < len(notes_list) else ''
-                        )
-                        sets_created += 1
-                    except (ValueError, Exercise.DoesNotExist):
-                        continue
-            
-            messages.success(request, f'Workout session created with {sets_created} sets!')
-            return redirect('session_detail', pk=session.pk)
+        workout = Workout.objects.create(
+            day_type=day_type,
+            date=date,
+            notes=notes
+        )
         
-        exercises = Exercise.objects.all()
-        context = {
-            'session_form': session_form,
-            'exercises': exercises,
-        }
-        return render(request, 'workouts/session_create.html', context)
+        return redirect('add_exercise', workout_id=workout.id)
 
 
-class SessionDeleteView(DeleteView):
-    """
-    Delete a workout session.
-    """
-    model = WorkoutSession
-    template_name = 'workouts/session_confirm_delete.html'
-    success_url = reverse_lazy('session_list')
-
-    def delete(self, request, *args, **kwargs):
-        messages.success(request, 'Workout session deleted.')
-        return super().delete(request, *args, **kwargs)
-
-
-class AddSetToSessionView(View):
-    """
-    Add additional sets to an existing session.
-    """
-    def get(self, request, session_id):
-        session = get_object_or_404(WorkoutSession, pk=session_id)
-        exercises = Exercise.objects.all()
+class AddExerciseView(View):
+    """Step 2: Add exercise to workout with number of sets."""
+    
+    def get(self, request, workout_id):
+        workout = get_object_or_404(Workout, id=workout_id)
+        
+        # Get exercises grouped by muscle group
+        exercises_by_group = {}
+        for exercise in Exercise.objects.all():
+            group = exercise.get_muscle_group_display()
+            if group not in exercises_by_group:
+                exercises_by_group[group] = []
+            exercises_by_group[group].append(exercise)
+        
+        # Get already added exercises
+        added_exercises = workout.workout_exercises.select_related('exercise').all()
         
         context = {
-            'session': session,
-            'exercises': exercises,
+            'workout': workout,
+            'exercises_by_group': exercises_by_group,
+            'added_exercises': added_exercises,
         }
-        return render(request, 'workouts/add_set.html', context)
-
-    def post(self, request, session_id):
-        session = get_object_or_404(WorkoutSession, pk=session_id)
+        return render(request, 'workouts/add_exercise.html', context)
+    
+    def post(self, request, workout_id):
+        workout = get_object_or_404(Workout, id=workout_id)
         
         exercise_id = request.POST.get('exercise')
-        weight = request.POST.get('weight')
-        reps = request.POST.get('reps')
-        notes = request.POST.get('notes', '')
-
-        try:
-            Set.objects.create(
-                session=session,
-                exercise_id=int(exercise_id),
-                weight=float(weight),
-                reps=int(reps),
-                notes=notes
-            )
-            messages.success(request, 'Set added successfully!')
-        except (ValueError, Exercise.DoesNotExist) as e:
-            messages.error(request, f'Error adding set: {e}')
+        num_sets = int(request.POST.get('num_sets', 3))
         
-        return redirect('session_detail', pk=session_id)
-
-
-class DeleteSetView(View):
-    """
-    Delete a single set from a session.
-    """
-    def post(self, request, set_id):
-        set_obj = get_object_or_404(Set, pk=set_id)
-        session_id = set_obj.session.id
-        set_obj.delete()
-        messages.success(request, 'Set deleted.')
-        return redirect('session_detail', pk=session_id)
-
-
-class ExerciseListView(ListView):
-    """
-    List all exercises with their personal bests.
-    """
-    model = Exercise
-    template_name = 'workouts/exercise_list.html'
-    context_object_name = 'exercises'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # Get sort preference from query params
-        sort_by = self.request.GET.get('sort', 'weight')
-        context['sort_by'] = sort_by
-        return context
-
-
-class ExerciseDetailView(DetailView):
-    """
-    View details of a specific exercise including personal bests and history.
-    """
-    model = Exercise
-    template_name = 'workouts/exercise_detail.html'
-    context_object_name = 'exercise'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        exercise = self.object
+        exercise = get_object_or_404(Exercise, id=exercise_id)
         
-        context['pb_weight'] = exercise.get_personal_best_weight()
-        context['pb_reps'] = exercise.get_personal_best_reps()
-        context['progression'] = exercise.get_suggested_progression()
-        context['recent_history'] = exercise.get_recent_history(limit=10)
+        # Get next order number
+        max_order = workout.workout_exercises.aggregate(Max('order'))['order__max'] or 0
         
-        return context
+        workout_exercise = WorkoutExercise.objects.create(
+            workout=workout,
+            exercise=exercise,
+            num_sets=num_sets,
+            order=max_order + 1
+        )
+        
+        # Redirect to enter sets for this exercise
+        return redirect('enter_sets', workout_id=workout.id, exercise_id=exercise.id)
 
 
-class ExerciseCreateView(CreateView):
-    """
-    Create a new exercise.
-    """
-    model = Exercise
-    form_class = ExerciseForm
-    template_name = 'workouts/exercise_form.html'
-    success_url = reverse_lazy('exercise_list')
+class EnterSetsView(View):
+    """Step 3: Enter weight and reps for each set."""
+    
+    def get(self, request, workout_id, exercise_id):
+        workout = get_object_or_404(Workout, id=workout_id)
+        exercise = get_object_or_404(Exercise, id=exercise_id)
+        workout_exercise = get_object_or_404(WorkoutExercise, workout=workout, exercise=exercise)
+        
+        # Get existing sets
+        existing_sets = Set.objects.filter(workout=workout, exercise=exercise).order_by('set_number')
+        
+        # Get suggestion
+        suggestion = exercise.get_suggested_weight()
+        last_workout = exercise.get_last_workout()
+        
+        context = {
+            'workout': workout,
+            'exercise': exercise,
+            'workout_exercise': workout_exercise,
+            'num_sets': workout_exercise.num_sets,
+            'existing_sets': existing_sets,
+            'suggestion': suggestion,
+            'last_workout': last_workout,
+        }
+        return render(request, 'workouts/enter_sets.html', context)
+    
+    def post(self, request, workout_id, exercise_id):
+        workout = get_object_or_404(Workout, id=workout_id)
+        exercise = get_object_or_404(Exercise, id=exercise_id)
+        workout_exercise = get_object_or_404(WorkoutExercise, workout=workout, exercise=exercise)
+        
+        # Clear existing sets for this exercise in this workout
+        Set.objects.filter(workout=workout, exercise=exercise).delete()
+        
+        # Save all sets
+        for i in range(1, workout_exercise.num_sets + 1):
+            weight = request.POST.get(f'weight_{i}')
+            reps = request.POST.get(f'reps_{i}')
+            notes = request.POST.get(f'notes_{i}', '')
+            
+            if weight and reps:
+                Set.objects.create(
+                    workout=workout,
+                    exercise=exercise,
+                    set_number=i,
+                    weight=weight,
+                    reps=reps,
+                    notes=notes
+                )
+        
+        messages.success(request, f'{exercise.name} sets saved!')
+        
+        # Check if user wants to add another exercise
+        if 'add_another' in request.POST:
+            return redirect('add_exercise', workout_id=workout.id)
+        
+        return redirect('workout_detail', workout_id=workout.id)
 
-    def form_valid(self, form):
-        messages.success(self.request, f'Exercise "{form.instance.name}" created!')
-        return super().form_valid(form)
+
+class WorkoutDetailView(View):
+    """View workout details."""
+    
+    def get(self, request, workout_id):
+        workout = get_object_or_404(Workout, id=workout_id)
+        
+        # Group sets by exercise
+        exercises_data = []
+        for we in workout.workout_exercises.select_related('exercise').all():
+            sets = Set.objects.filter(workout=workout, exercise=we.exercise).order_by('set_number')
+            exercises_data.append({
+                'exercise': we.exercise,
+                'planned_sets': we.num_sets,
+                'sets': sets,
+                'total_volume': sum(s.get_volume() for s in sets)
+            })
+        
+        context = {
+            'workout': workout,
+            'exercises_data': exercises_data,
+            'total_volume': workout.get_total_volume(),
+        }
+        return render(request, 'workouts/workout_detail.html', context)
 
 
-class ExerciseDeleteView(DeleteView):
-    """
-    Delete an exercise.
-    """
-    model = Exercise
-    template_name = 'workouts/exercise_confirm_delete.html'
-    success_url = reverse_lazy('exercise_list')
+class WorkoutListView(View):
+    """List all workouts."""
+    
+    def get(self, request):
+        workouts = Workout.objects.prefetch_related('sets__exercise').all()
+        
+        context = {
+            'workouts': workouts,
+        }
+        return render(request, 'workouts/workout_list.html', context)
 
-    def delete(self, request, *args, **kwargs):
-        messages.success(request, 'Exercise deleted.')
-        return super().delete(request, *args, **kwargs)
+
+class DeleteWorkoutView(View):
+    """Delete a workout."""
+    
+    def post(self, request, workout_id):
+        workout = get_object_or_404(Workout, id=workout_id)
+        workout.delete()
+        messages.success(request, 'Workout deleted.')
+        return redirect('dashboard')
+
+
+class ExerciseListView(View):
+    """List all exercises."""
+    
+    def get(self, request):
+        exercises_by_group = {}
+        for exercise in Exercise.objects.annotate(set_count=Count('sets')).all():
+            group = exercise.get_muscle_group_display()
+            if group not in exercises_by_group:
+                exercises_by_group[group] = []
+            
+            pb = exercise.get_personal_best()
+            exercises_by_group[group].append({
+                'exercise': exercise,
+                'set_count': exercise.set_count,
+                'pb': pb
+            })
+        
+        context = {
+            'exercises_by_group': exercises_by_group,
+        }
+        return render(request, 'workouts/exercise_list.html', context)
+
+
+class AddExerciseTypeView(View):
+    """Add a new exercise type."""
+    
+    def get(self, request):
+        context = {
+            'muscle_groups': Exercise.MUSCLE_GROUPS,
+        }
+        return render(request, 'workouts/add_exercise_type.html', context)
+    
+    def post(self, request):
+        name = request.POST.get('name')
+        muscle_group = request.POST.get('muscle_group')
+        
+        Exercise.objects.create(name=name, muscle_group=muscle_group)
+        messages.success(request, f'{name} added!')
+        
+        return redirect('exercise_list')
 
 
 class PersonalBestsView(View):
-    """
-    View all personal bests across all exercises.
-    Supports toggling between highest weight and highest reps.
-    """
+    """View all personal bests."""
+    
     def get(self, request):
-        sort_by = request.GET.get('sort', 'weight')  # 'weight' or 'reps'
-        
-        exercises = Exercise.objects.annotate(set_count=Count('sets')).filter(set_count__gt=0)
+        sort_by = request.GET.get('sort', 'weight')
         
         personal_bests = []
-        for exercise in exercises:
-            if sort_by == 'reps':
-                pb = exercise.get_personal_best_reps()
-            else:
-                pb = exercise.get_personal_best_weight()
-            
+        for exercise in Exercise.objects.annotate(set_count=Count('sets')).filter(set_count__gt=0):
+            pb = exercise.get_personal_best()
             if pb:
                 personal_bests.append({
                     'exercise': exercise,
-                    'weight': pb['weight'],
-                    'reps': pb['reps'],
-                    'date': pb['date'],
-                    'progression': exercise.get_suggested_progression()
+                    'weight': pb.weight,
+                    'reps': pb.reps,
+                    'date': pb.workout.date,
+                    'suggestion': exercise.get_suggested_weight()
                 })
         
-        # Sort by weight or reps
         if sort_by == 'reps':
             personal_bests.sort(key=lambda x: x['reps'], reverse=True)
         else:
@@ -289,33 +300,19 @@ class PersonalBestsView(View):
         return render(request, 'workouts/personal_bests.html', context)
 
 
-# API-style views for AJAX requests
-class ExerciseSuggestionsAPI(View):
-    """
-    Returns exercise suggestions for autocomplete.
-    """
-    def get(self, request):
-        query = request.GET.get('q', '')
-        exercises = Exercise.objects.filter(name__icontains=query)[:10]
-        data = [{'id': e.id, 'name': e.name} for e in exercises]
-        return JsonResponse({'exercises': data})
-
-
-class ExerciseProgressionAPI(View):
-    """
-    Returns progression suggestion for a specific exercise.
-    """
+# API Views
+class ExerciseSuggestionAPI(View):
+    """Get weight suggestion for an exercise."""
+    
     def get(self, request, exercise_id):
-        exercise = get_object_or_404(Exercise, pk=exercise_id)
-        progression = exercise.get_suggested_progression()
+        exercise = get_object_or_404(Exercise, id=exercise_id)
+        suggestion = exercise.get_suggested_weight()
+        last = exercise.get_last_workout()
         
-        if progression:
-            return JsonResponse({
-                'success': True,
-                'suggested_weight': float(progression['suggested_weight']),
-                'message': progression['message']
-            })
-        return JsonResponse({
-            'success': False,
-            'message': 'No previous data for this exercise'
-        })
+        data = {
+            'suggestion': float(suggestion) if suggestion else None,
+            'last_weight': float(last.weight) if last else None,
+            'last_reps': last.reps if last else None,
+            'last_date': last.workout.date.isoformat() if last else None,
+        }
+        return JsonResponse(data)

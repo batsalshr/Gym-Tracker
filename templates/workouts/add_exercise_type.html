@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Exercise - GymTracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Add New Exercise</h1>
+    <p class="page-subtitle">Add a new exercise to your library</p>
+</div>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label class="form-label">Exercise Name</label>
+            <input type="text" name="name" class="form-control" placeholder="e.g., Bench Press" required id="exercise-name">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Muscle Group</label>
+            <select name="muscle_group" class="form-control" required>
+                <option value="">-- Select muscle group --</option>
+                {% for value, label in muscle_groups %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button type="submit" class="btn btn-primary btn-lg">Add Exercise</button>
+            <a href="{% url 'exercise_list' %}" class="btn btn-secondary btn-lg">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<!-- Common Exercises -->
+<div class="card" style="background: var(--gray-50);">
+    <h3 style="margin-bottom: 1rem;">💡 Common Exercises</h3>
+    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;" id="common-exercises">
+        <span class="badge badge-primary quick-add">Bench Press</span>
+        <span class="badge badge-primary quick-add">Incline Bench</span>
+        <span class="badge badge-primary quick-add">Chest Fly</span>
+        <span class="badge badge-primary quick-add">Deadlift</span>
+        <span class="badge badge-primary quick-add">Barbell Row</span>
+        <span class="badge badge-primary quick-add">Lat Pulldown</span>
+        <span class="badge badge-primary quick-add">Pull-up</span>
+        <span class="badge badge-primary quick-add">Squat</span>
+        <span class="badge badge-primary quick-add">Leg Press</span>
+        <span class="badge badge-primary quick-add">Overhead Press</span>
+        <span class="badge badge-primary quick-add">Lateral Raise</span>
+        <span class="badge badge-primary quick-add">Barbell Curl</span>
+        <span class="badge badge-primary quick-add">Hammer Curl</span>
+        <span class="badge badge-primary quick-add">Tricep Pushdown</span>
+        <span class="badge badge-primary quick-add">Skull Crusher</span>
+    </div>
+    <p style="font-size: 0.75rem; color: var(--gray-500); margin-top: 1rem;">Click to auto-fill</p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.quick-add').forEach(function(el) {
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', function() {
+        document.getElementById('exercise-name').value = this.textContent;
+    });
+});
+</script>
+{% endblock %}
