@@ -1,102 +1,274 @@
 {% extends 'base.html' %}
 
-{% block title %}Edit {{ template.name }} - Gym Tracker{% endblock %}
-{% block page_title %}Edit: {{ template.name }}{% endblock %}
+{% block title %}Edit Template - Gym Tracker{% endblock %}
+{% block page_title %}{{ template.name }}{% endblock %}
 
 {% block header_actions %}
 <a href="{% url 'templates' %}" class="btn btn-secondary">← Back to Templates</a>
 {% endblock %}
 
 {% block content %}
+<!-- Template Info -->
 <div class="card">
-    <div class="card-header">
-        <h2 class="card-title">Template Info</h2>
+    <div class="template-info">
+        <div class="template-groups-display">
+            <span class="label">Muscle Groups:</span>
+            <span class="value">{{ template.get_muscle_groups_display }}</span>
+        </div>
+        <form method="post" action="{% url 'use_template' template.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">▶️ Start Workout</button>
+        </form>
     </div>
-    <p><strong>Name:</strong> {{ template.name }}</p>
-    <p><strong>Muscle Groups:</strong> {{ template.get_muscle_groups_display }}</p>
-</div>
-
-<!-- Current Exercises -->
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title">Exercises</h2>
-        <span class="badge badge-primary">{{ template.exercises.count }} exercises</span>
-    </div>
-    
-    {% if template.exercises.all %}
-    <table>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Exercise</th>
-                <th>Sets</th>
-                <th>Reps</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for te in template.exercises.all %}
-            <tr>
-                <td>{{ forloop.counter }}</td>
-                <td><strong>{{ te.exercise.name }}</strong></td>
-                <td>{{ te.target_sets }}</td>
-                <td>{{ te.target_reps }}</td>
-                <td>
-                    <form method="post" action="{% url 'delete_template_exercise' te.id %}" style="display: inline;">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--danger);">×</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <div class="empty-state" style="padding: 2rem;">
-        <p>No exercises added yet.</p>
-    </div>
-    {% endif %}
 </div>
 
 <!-- Add Exercise -->
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">Add Exercise</h2>
+        <h2 class="card-title">➕ Add Exercise</h2>
     </div>
     
-    <form method="post" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+    <form method="post" class="add-exercise-form">
         {% csrf_token %}
-        <div class="form-group" style="margin-bottom: 0; flex: 2; min-width: 200px;">
-            <label class="form-label">Exercise</label>
-            <select name="exercise" class="form-control" required>
-                <option value="">Choose an exercise...</option>
-                {% regroup exercises by get_muscle_group_display as grouped %}
-                {% for group in grouped %}
-                <optgroup label="{{ group.grouper }}">
-                    {% for ex in group.list %}
-                    <option value="{{ ex.id }}">{{ ex.name }}</option>
-                    {% endfor %}
-                </optgroup>
-                {% endfor %}
-            </select>
+        <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+                <label class="form-label">Exercise</label>
+                <div class="autocomplete-wrapper">
+                    <input type="text" id="exercise-search" class="form-control" placeholder="Search exercise..." autocomplete="off">
+                    <input type="hidden" name="exercise" id="exercise-id" required>
+                    <div class="autocomplete-results" id="autocomplete-results"></div>
+                </div>
+                <div id="selected-exercise" class="selected-tag" style="display: none;">
+                    <span id="selected-name"></span>
+                    <button type="button" class="tag-remove" onclick="clearExercise()">✕</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Sets</label>
+                <input type="number" name="target_sets" class="form-control" value="3" min="1" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Reps</label>
+                <input type="text" name="target_reps" class="form-control" value="8-12" placeholder="8-12" required>
+            </div>
+            <div class="form-group" style="padding-top: 1.75rem;">
+                <button type="submit" class="btn btn-primary">Add</button>
+            </div>
         </div>
-        <div class="form-group" style="margin-bottom: 0; width: 80px;">
-            <label class="form-label">Sets</label>
-            <input type="number" name="target_sets" class="form-control" value="3" min="1" required>
-        </div>
-        <div class="form-group" style="margin-bottom: 0; width: 100px;">
-            <label class="form-label">Reps</label>
-            <input type="text" name="target_reps" class="form-control" value="8-12" placeholder="8-12">
-        </div>
-        <button type="submit" class="btn btn-primary">Add</button>
     </form>
 </div>
 
-<!-- Use Template -->
-<div style="margin-top: 2rem; text-align: center;">
-    <form method="post" action="{% url 'use_template' template.id %}">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-primary btn-lg">Use This Template</button>
-    </form>
+<!-- Exercises List -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">📋 Exercises</h2>
+        <span class="badge badge-primary">{{ template.exercises.count }}</span>
+    </div>
+    
+    {% if template.exercises.count > 0 %}
+    <div class="exercise-list">
+        {% for te in template.exercises.all %}
+        <div class="exercise-row">
+            <span class="exercise-order">{{ te.order|add:1 }}</span>
+            <div class="exercise-info">
+                <span class="exercise-name">{{ te.exercise.name }}</span>
+                <span class="exercise-group">{{ te.exercise.get_muscle_group_display }}</span>
+            </div>
+            <div class="exercise-target">
+                <span class="target-sets">{{ te.target_sets }} sets</span>
+                <span class="target-reps">× {{ te.target_reps }}</span>
+            </div>
+            <form method="post" action="{% url 'delete_template_exercise' te.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--danger);">✕</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding: 2rem;">
+        <p>No exercises yet. Add your first exercise above!</p>
+    </div>
+    {% endif %}
 </div>
+
+<style>
+    .template-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .template-groups-display {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .template-groups-display .label {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+    }
+    
+    .template-groups-display .value {
+        color: var(--accent);
+        font-weight: 500;
+    }
+    
+    .form-row {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+    
+    .selected-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        background: var(--accent-light);
+        border-radius: var(--radius);
+        margin-top: 0.5rem;
+        font-weight: 500;
+    }
+    
+    .tag-remove {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 0;
+    }
+    
+    .exercise-list {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .exercise-row {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .exercise-row:last-child {
+        border-bottom: none;
+    }
+    
+    .exercise-order {
+        width: 32px;
+        height: 32px;
+        background: var(--accent-light);
+        color: var(--accent);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.875rem;
+    }
+    
+    .exercise-info {
+        flex: 1;
+    }
+    
+    .exercise-name {
+        font-weight: 500;
+        display: block;
+    }
+    
+    .exercise-group {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .exercise-target {
+        text-align: right;
+    }
+    
+    .target-sets {
+        font-weight: 600;
+    }
+    
+    .target-reps {
+        color: var(--text-muted);
+    }
+    
+    @media (max-width: 768px) {
+        .form-row {
+            flex-direction: column;
+        }
+        
+        .form-group {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const searchInput = document.getElementById('exercise-search');
+const resultsContainer = document.getElementById('autocomplete-results');
+const exerciseIdInput = document.getElementById('exercise-id');
+
+let searchTimeout;
+
+searchInput.addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    const query = this.value.trim();
+    
+    if (query.length < 1) {
+        resultsContainer.classList.remove('show');
+        return;
+    }
+    
+    searchTimeout = setTimeout(async () => {
+        const response = await fetch(`/api/exercises/search/?q=${encodeURIComponent(query)}&limit=10`);
+        const data = await response.json();
+        
+        if (data.results.length > 0) {
+            resultsContainer.innerHTML = data.results.map(ex => `
+                <div class="autocomplete-item" data-id="${ex.id}" data-name="${ex.name}">
+                    <span class="autocomplete-item-name">${ex.name}</span>
+                    <span class="autocomplete-item-meta">${ex.muscle_group_display}</span>
+                </div>
+            `).join('');
+            resultsContainer.classList.add('show');
+            
+            resultsContainer.querySelectorAll('.autocomplete-item').forEach(item => {
+                item.addEventListener('click', () => selectExercise(item));
+            });
+        } else {
+            resultsContainer.classList.remove('show');
+        }
+    }, 150);
+});
+
+function selectExercise(item) {
+    exerciseIdInput.value = item.dataset.id;
+    searchInput.value = '';
+    searchInput.style.display = 'none';
+    
+    document.getElementById('selected-exercise').style.display = 'inline-flex';
+    document.getElementById('selected-name').textContent = item.dataset.name;
+    
+    resultsContainer.classList.remove('show');
+}
+
+function clearExercise() {
+    exerciseIdInput.value = '';
+    searchInput.value = '';
+    searchInput.style.display = 'block';
+    document.getElementById('selected-exercise').style.display = 'none';
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.autocomplete-wrapper')) {
+        resultsContainer.classList.remove('show');
+    }
+});
+</script>
 {% endblock %}

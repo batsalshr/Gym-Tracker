@@ -70,6 +70,9 @@ class DashboardView(View):
         # Latest body weight
         latest_weight = BodyWeight.objects.first()
         
+        # Templates for quick start
+        templates = WorkoutTemplate.objects.all()[:3]
+        
         context = {
             'recent_workouts': recent_workouts,
             'total_workouts': total_workouts,
@@ -81,6 +84,7 @@ class DashboardView(View):
             'streak': streak,
             'active_goals': active_goals,
             'latest_weight': latest_weight,
+            'templates': templates,
         }
         return render(request, 'workouts/dashboard.html', context)
 
@@ -394,11 +398,15 @@ class ProgressView(View):
             for date, data in sorted(sets_by_date.items())
         ]
         
+        # Calculate total volume across all time
+        total_volume = sum(d['volume'] for d in progress_data)
+        
         context = {
             'exercise': exercise,
             'progress_data': progress_data,
             'pb': exercise.get_personal_best(),
             'suggestion': exercise.get_suggested_weight(),
+            'total_volume': total_volume,
         }
         return render(request, 'workouts/progress.html', context)
 
@@ -588,6 +596,7 @@ class GoalsView(View):
             'achieved_goals': achieved_goals,
             'exercises': exercises,
             'goal_types': Goal.GOAL_TYPES,
+            'today': timezone.now().date(),
         }
         return render(request, 'workouts/goals.html', context)
     

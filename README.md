@@ -164,3 +164,5 @@ python demo_data.py  # Optional
 - Accent: #4F9CFF
 
 ---
+
+Built with Django 🐍 and ❤️

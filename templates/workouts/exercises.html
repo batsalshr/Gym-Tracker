@@ -4,42 +4,46 @@
 {% block page_title %}Exercise Library{% endblock %}
 
 {% block content %}
-<!-- Search and Add -->
+<!-- Search -->
 <div class="card">
-    <div class="card-header">
-        <h2 class="card-title">🔍 Search Exercises</h2>
-        <span class="badge badge-primary">{{ total_count }} exercises</span>
-    </div>
-    
-    <form method="get" style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
-        <input type="text" name="search" class="form-control" placeholder="Search exercises..." value="{{ search }}" style="flex: 1;">
+    <form method="get" class="search-form">
+        <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" name="search" class="search-input" placeholder="Search exercises..." value="{{ search }}">
+            {% if search %}
+            <a href="{% url 'exercises' %}" class="search-clear">✕</a>
+            {% endif %}
+        </div>
         <button type="submit" class="btn btn-primary">Search</button>
-        {% if search %}
-        <a href="{% url 'exercises' %}" class="btn btn-secondary">Clear</a>
-        {% endif %}
     </form>
     
-    <!-- Add New -->
-    <div style="padding-top: 1rem; border-top: 1px solid var(--border);">
-        <p style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.75rem;">Add Custom Exercise</p>
-        <form method="post" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
-            {% csrf_token %}
-            <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 180px;">
-                <label class="form-label">Name</label>
+    <div class="exercise-count">
+        <span class="badge badge-primary">{{ total_count }} exercises</span>
+    </div>
+</div>
+
+<!-- Add Custom Exercise -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">➕ Add Custom Exercise</h2>
+    </div>
+    
+    <form method="post" class="add-exercise-form">
+        {% csrf_token %}
+        <div class="form-row">
+            <div class="form-group" style="flex: 2;">
                 <input type="text" name="name" class="form-control" placeholder="Exercise name" required>
             </div>
-            <div class="form-group" style="margin-bottom: 0; width: 150px;">
-                <label class="form-label">Muscle Group</label>
+            <div class="form-group" style="flex: 1;">
                 <select name="muscle_group" class="form-control" required>
                     {% for value, label in muscle_groups %}
                     <option value="{{ value }}">{{ label }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="form-group" style="margin-bottom: 0; width: 150px;">
-                <label class="form-label">Equipment</label>
+            <div class="form-group" style="flex: 1;">
                 <select name="equipment" class="form-control">
-                    <option value="">Any</option>
+                    <option value="">Equipment</option>
                     <option value="barbell">Barbell</option>
                     <option value="dumbbell">Dumbbell</option>
                     <option value="machine">Machine</option>
@@ -49,8 +53,8 @@
                 </select>
             </div>
             <button type="submit" class="btn btn-primary">Add</button>
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
 
 <!-- Exercise List -->
@@ -62,7 +66,7 @@
         <span class="badge badge-primary">{{ exercises|length }}</span>
     </div>
     
-    <div class="exercise-grid">
+    <div class="exercise-list">
         {% for exercise in exercises %}
         <div class="exercise-item">
             <div class="exercise-info">
@@ -73,11 +77,11 @@
             </div>
             <div class="exercise-actions">
                 {% if exercise.set_count > 0 %}
-                <a href="{% url 'exercise_progress' exercise.id %}" class="btn btn-ghost btn-sm">📈</a>
+                <a href="{% url 'exercise_progress' exercise.id %}" class="btn btn-ghost btn-sm">📈 Progress</a>
                 {% endif %}
                 <form method="post" action="{% url 'delete_exercise' exercise.id %}" style="display: inline;">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--danger);" onclick="return confirm('Delete {{ exercise.name }}?')">×</button>
+                    <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--danger);" onclick="return confirm('Delete {{ exercise.name }}?')">✕</button>
                 </form>
             </div>
         </div>
@@ -90,24 +94,84 @@
     <div class="empty-state">
         <div class="empty-state-icon">🏋️</div>
         <h3>{% if search %}No exercises found{% else %}No exercises yet{% endif %}</h3>
-        <p>{% if search %}Try a different search term{% else %}Add your first exercise above or load the exercise database{% endif %}</p>
+        <p>{% if search %}Try a different search term{% else %}Add your first exercise above{% endif %}</p>
     </div>
 </div>
 {% endif %}
 
 <style>
-    .exercise-grid {
-        display: grid;
-        gap: 0.5rem;
+    .search-form {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+    
+    .search-input-wrap {
+        flex: 1;
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    
+    .search-icon {
+        position: absolute;
+        left: 1rem;
+        font-size: 1rem;
+    }
+    
+    .search-input {
+        width: 100%;
+        padding: 0.875rem 1rem 0.875rem 3rem;
+        font-size: 1rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg-input);
+        color: var(--text-primary);
+    }
+    
+    .search-input:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+    
+    .search-clear {
+        position: absolute;
+        right: 1rem;
+        color: var(--text-muted);
+        text-decoration: none;
+    }
+    
+    .exercise-count {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border);
+    }
+    
+    .add-exercise-form .form-row {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-end;
+    }
+    
+    .add-exercise-form .form-group {
+        margin-bottom: 0;
+    }
+    
+    .exercise-list {
+        display: flex;
+        flex-direction: column;
     }
     
     .exercise-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.75rem;
-        background: var(--bg-main);
-        border-radius: var(--radius);
+        padding: 0.875rem 0;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .exercise-item:last-child {
+        border-bottom: none;
     }
     
     .exercise-info {
@@ -122,13 +186,26 @@
     
     .exercise-equipment {
         font-size: 0.75rem;
-        color: var(--text-secondary);
+        color: var(--text-muted);
         text-transform: capitalize;
+        padding: 0.125rem 0.5rem;
+        background: var(--bg-main);
+        border-radius: var(--radius);
     }
     
     .exercise-actions {
         display: flex;
         gap: 0.25rem;
+    }
+    
+    @media (max-width: 768px) {
+        .add-exercise-form .form-row {
+            flex-direction: column;
+        }
+        
+        .add-exercise-form .form-group {
+            width: 100%;
+        }
     }
 </style>
 {% endblock %}

@@ -1,79 +1,82 @@
 {% extends 'base.html' %}
 
-{% block title %}Workout Templates - Gym Tracker{% endblock %}
+{% block title %}Templates - Gym Tracker{% endblock %}
 {% block page_title %}Workout Templates{% endblock %}
 
 {% block content %}
 <!-- Create Template -->
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">Create New Template</h2>
+        <h2 class="card-title">➕ Create Template</h2>
     </div>
     
     <form method="post">
         {% csrf_token %}
-        <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
-            <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
-                <label class="form-label">Template Name</label>
-                <input type="text" name="name" class="form-control" placeholder="e.g., Push Day, Upper Body" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Create Template</button>
+        <div class="form-group">
+            <label class="form-label">Template Name</label>
+            <input type="text" name="name" class="form-control" placeholder="e.g., Push Day, Upper Body, PPL Day 1" required>
         </div>
         
-        <div class="form-group" style="margin-top: 1rem;">
+        <div class="form-group">
             <label class="form-label">Muscle Groups</label>
-            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+            <div class="chip-group">
                 {% for value, label in muscle_groups %}
-                <label style="display: flex; align-items: center; gap: 0.375rem; cursor: pointer;">
+                <label class="chip">
                     <input type="checkbox" name="muscle_groups" value="{{ value }}">
-                    <span class="badge badge-primary" style="cursor: pointer;">{{ label }}</span>
+                    {{ label }}
                 </label>
                 {% endfor %}
             </div>
         </div>
+        
+        <button type="submit" class="btn btn-primary">Create Template</button>
     </form>
 </div>
 
 <!-- Templates List -->
 {% if templates %}
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title">Your Templates</h2>
-        <span class="badge badge-primary">{{ templates|length }} templates</span>
-    </div>
-    
+<div class="templates-grid">
     {% for template in templates %}
     <div class="template-card">
         <div class="template-header">
-            <div>
-                <h3 class="template-name">{{ template.name }}</h3>
-                <span class="template-groups">{{ template.get_muscle_groups_display }}</span>
-            </div>
+            <h3 class="template-name">{{ template.name }}</h3>
             <div class="template-actions">
-                <form method="post" action="{% url 'use_template' template.id %}" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary btn-sm">Use Template</button>
-                </form>
-                <a href="{% url 'template_edit' template.id %}" class="btn btn-secondary btn-sm">Edit</a>
+                <a href="{% url 'template_edit' template.id %}" class="btn btn-ghost btn-sm">✏️</a>
                 <form method="post" action="{% url 'delete_template' template.id %}" style="display: inline;">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--danger);" onclick="return confirm('Delete this template?')">×</button>
+                    <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--danger);" onclick="return confirm('Delete?')">✕</button>
                 </form>
             </div>
         </div>
         
-        {% if template.exercises.all %}
+        <div class="template-groups">
+            {{ template.get_muscle_groups_display }}
+        </div>
+        
+        {% if template.exercises.count > 0 %}
         <div class="template-exercises">
             {% for te in template.exercises.all %}
-            <span class="exercise-tag">
-                {{ te.exercise.name }}
-                <small>({{ te.target_sets }}×{{ te.target_reps }})</small>
-            </span>
+            <div class="template-exercise">
+                <span class="te-name">{{ te.exercise.name }}</span>
+                <span class="te-sets">{{ te.target_sets }}×{{ te.target_reps }}</span>
+            </div>
             {% endfor %}
         </div>
         {% else %}
-        <p style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.75rem;">No exercises added yet. Click Edit to add exercises.</p>
+        <div class="template-empty">
+            <p>No exercises yet</p>
+            <a href="{% url 'template_edit' template.id %}">Add exercises →</a>
+        </div>
         {% endif %}
+        
+        <div class="template-footer">
+            <form method="post" action="{% url 'use_template' template.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    ▶️ Start Workout
+                </button>
+            </form>
+        </div>
     </div>
     {% endfor %}
 </div>
@@ -88,54 +91,128 @@
 {% endif %}
 
 <style>
-    .template-card {
-        padding: 1rem 0;
-        border-bottom: 1px solid var(--border);
+    .chip-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
     }
     
-    .template-card:last-child {
-        border-bottom: none;
+    .chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border-radius: var(--radius-full);
+        border: 1px solid var(--border);
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .chip:hover {
+        border-color: var(--accent);
+    }
+    
+    .chip:has(input:checked) {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: white;
+    }
+    
+    .chip input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+    
+    .templates-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .template-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
     }
     
     .template-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        gap: 1rem;
+        margin-bottom: 0.5rem;
     }
     
     .template-name {
-        font-size: 1rem;
+        font-size: 1.25rem;
         font-weight: 600;
-        margin: 0 0 0.25rem;
-    }
-    
-    .template-groups {
-        font-size: 0.8125rem;
-        color: var(--text-secondary);
+        margin: 0;
     }
     
     .template-actions {
         display: flex;
-        gap: 0.5rem;
+        gap: 0.25rem;
+    }
+    
+    .template-groups {
+        font-size: 0.875rem;
+        color: var(--accent);
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border);
     }
     
     .template-exercises {
-        margin-top: 0.75rem;
+        flex: 1;
         display: flex;
-        flex-wrap: wrap;
+        flex-direction: column;
         gap: 0.5rem;
+        margin-bottom: 1rem;
     }
     
-    .exercise-tag {
+    .template-exercise {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.625rem 0.875rem;
         background: var(--bg-main);
-        padding: 0.375rem 0.75rem;
         border-radius: var(--radius);
-        font-size: 0.8125rem;
+        font-size: 0.875rem;
     }
     
-    .exercise-tag small {
-        color: var(--text-secondary);
+    .te-name {
+        font-weight: 500;
+    }
+    
+    .te-sets {
+        color: var(--text-muted);
+    }
+    
+    .template-empty {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        text-align: center;
+        color: var(--text-muted);
+    }
+    
+    .template-empty a {
+        color: var(--accent);
+        margin-top: 0.5rem;
+    }
+    
+    .template-footer {
+        margin-top: auto;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border);
     }
 </style>
 {% endblock %}

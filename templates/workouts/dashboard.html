@@ -4,79 +4,91 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block header_actions %}
-<a href="{% url 'log_workout' %}" class="btn btn-primary">+ Log Workout</a>
+<a href="{% url 'log_workout' %}" class="btn btn-primary">
+    ➕ Start Workout
+</a>
 {% endblock %}
 
 {% block content %}
-<!-- Welcome Banner -->
-<div class="welcome-banner">
-    <h2>💪 Welcome back!</h2>
-    <p>
-        {% if streak > 0 %}
-        🔥 You're on a <strong>{{ streak }} day streak</strong>! Keep it up!
-        {% else %}
-        Ready to crush your workout today?
-        {% endif %}
-    </p>
+<!-- Quick Actions -->
+<div class="quick-actions">
+    <a href="{% url 'log_workout' %}" class="quick-action-card primary">
+        <div class="quick-action-icon">🏋️</div>
+        <div class="quick-action-text">
+            <strong>Start Workout</strong>
+            <span>Log your session</span>
+        </div>
+        <span class="quick-action-arrow">→</span>
+    </a>
+    <a href="{% url 'bodyweight' %}" class="quick-action-card">
+        <div class="quick-action-icon">⚖️</div>
+        <div class="quick-action-text">
+            <strong>Log Weight</strong>
+            <span>{% if latest_weight %}{{ latest_weight.weight }}kg{% else %}Track progress{% endif %}</span>
+        </div>
+        <span class="quick-action-arrow">→</span>
+    </a>
 </div>
 
-<!-- Stats -->
+<!-- Stats Grid -->
 <div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-label">Last Workout</div>
-        <div class="stat-value">{% if last_workout %}{{ last_workout.date|date:"M d" }}{% else %}—{% endif %}</div>
-    </div>
-    <div class="stat-card">
+    <a href="{% url 'history' %}" class="stat-card">
+        <div class="stat-icon blue">📅</div>
         <div class="stat-label">This Week</div>
-        <div class="stat-value accent">{{ this_week }}</div>
+        <div class="stat-value accent font-mono">{{ this_week }}</div>
+        <div class="stat-change">workouts</div>
+    </a>
+    
+    <div class="stat-card" onclick="location.href='{% url 'history' %}'">
+        <div class="stat-icon orange">🔥</div>
+        <div class="stat-label">Current Streak</div>
+        <div class="stat-value warning font-mono">{{ streak }}</div>
+        <div class="stat-change">{% if streak > 0 %}days strong!{% else %}Start today{% endif %}</div>
     </div>
-    <div class="stat-card">
+    
+    <a href="{% url 'history' %}" class="stat-card">
+        <div class="stat-icon green">📊</div>
         <div class="stat-label">Weekly Volume</div>
-        <div class="stat-value">{{ weekly_volume|floatformat:0 }}<span style="font-size: 1rem; color: var(--text-secondary);">kg</span></div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">Total Workouts</div>
-        <div class="stat-value">{{ total_workouts }}</div>
-    </div>
+        <div class="stat-value font-mono">{{ weekly_volume|floatformat:0 }}</div>
+        <div class="stat-change">kg lifted</div>
+    </a>
+    
+    <a href="{% url 'personal_bests' %}" class="stat-card">
+        <div class="stat-icon gold">🏆</div>
+        <div class="stat-label">Total PRs</div>
+        <div class="stat-value font-mono">{{ personal_bests|length }}</div>
+        <div class="stat-change">personal records</div>
+    </a>
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+<div class="dashboard-grid">
     <!-- Left Column -->
-    <div>
+    <div class="dashboard-main">
         <!-- Active Goals -->
         {% if active_goals %}
         <div class="card">
             <div class="card-header">
                 <h2 class="card-title">🎯 Active Goals</h2>
-                <a href="{% url 'goals' %}" class="btn btn-ghost btn-sm">View All</a>
+                <a href="{% url 'goals' %}" class="btn btn-ghost btn-sm">View All →</a>
             </div>
             
             {% for goal in active_goals %}
-            <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                    <span style="font-weight: 500;">{{ goal.name }}</span>
-                    <span style="font-weight: 600; color: var(--accent);">{{ goal.get_progress_percent }}%</span>
+            <div class="goal-item" onclick="location.href='{% url 'goals' %}'">
+                <div class="goal-info">
+                    <div class="goal-name">{{ goal.name }}</div>
+                    <div class="goal-meta">
+                        {% if goal.exercise %}{{ goal.exercise.name }}{% endif %}
+                        {% if goal.deadline %} • Due {{ goal.deadline|date:"M d" }}{% endif %}
+                    </div>
                 </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: {{ goal.get_progress_percent }}%;"></div>
+                <div class="goal-progress-wrap">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ goal.get_progress_percent }}%;"></div>
+                    </div>
+                    <span class="goal-percent">{{ goal.get_progress_percent }}%</span>
                 </div>
             </div>
             {% endfor %}
-        </div>
-        {% endif %}
-        
-        <!-- Body Weight -->
-        {% if latest_weight %}
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">⚖️ Body Weight</h2>
-                <a href="{% url 'bodyweight' %}" class="btn btn-ghost btn-sm">Track</a>
-            </div>
-            <div style="display: flex; align-items: baseline; gap: 0.5rem;">
-                <span style="font-size: 2rem; font-weight: 700; color: var(--accent);">{{ latest_weight.weight }}</span>
-                <span style="color: var(--text-secondary);">kg</span>
-            </div>
-            <p style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.25rem;">{{ latest_weight.date|date:"M d, Y" }}</p>
         </div>
         {% endif %}
         
@@ -84,85 +96,356 @@
         <div class="card">
             <div class="card-header">
                 <h2 class="card-title">📋 Recent Workouts</h2>
-                <a href="{% url 'history' %}" class="btn btn-ghost btn-sm">View All</a>
+                <a href="{% url 'history' %}" class="btn btn-ghost btn-sm">View All →</a>
             </div>
             
             {% if recent_workouts %}
             {% for workout in recent_workouts %}
-            <a href="{% url 'workout_detail' workout.id %}" class="workout-row">
-                <div class="workout-date">
-                    <div class="workout-date-day">{{ workout.date|date:"d" }}</div>
-                    <div class="workout-date-month">{{ workout.date|date:"M" }}</div>
+            <a href="{% url 'workout_detail' workout.id %}" class="timeline-card">
+                <div class="timeline-date">
+                    <div class="timeline-date-day">{{ workout.date|date:"d" }}</div>
+                    <div class="timeline-date-month">{{ workout.date|date:"M" }}</div>
                 </div>
-                <div class="workout-info">
-                    <div class="workout-type">{{ workout.get_muscle_groups_display }}</div>
-                    <div class="workout-meta">{{ workout.get_total_sets }} sets • {{ workout.get_total_volume|floatformat:0 }}kg volume</div>
+                <div class="timeline-content">
+                    <div class="timeline-title">{{ workout.get_muscle_groups_display }}</div>
+                    <div class="timeline-meta">
+                        {% for name, data in workout.get_exercises_summary.items %}
+                        {{ name }}{% if not forloop.last %} • {% endif %}
+                        {% empty %}
+                        No exercises
+                        {% endfor %}
+                    </div>
+                    <div class="timeline-stats">
+                        <span class="timeline-stat"><strong>{{ workout.get_total_sets }}</strong> sets</span>
+                        <span class="timeline-stat"><strong>{{ workout.get_total_volume|floatformat:0 }}</strong> kg</span>
+                    </div>
                 </div>
-                <span style="color: var(--text-secondary);">→</span>
             </a>
             {% endfor %}
             {% else %}
-            <div class="empty-state">
-                <p>No workouts yet</p>
-                <a href="{% url 'log_workout' %}" class="btn btn-primary btn-sm" style="margin-top: 0.5rem;">Log First Workout</a>
+            <div class="empty-state" style="padding: 2rem;">
+                <div class="empty-state-icon">🏋️</div>
+                <h3>No workouts yet</h3>
+                <p>Start your fitness journey today!</p>
+                <a href="{% url 'log_workout' %}" class="btn btn-primary">Log First Workout</a>
             </div>
             {% endif %}
         </div>
     </div>
     
     <!-- Right Column -->
-    <div>
-        <!-- Personal Bests -->
+    <div class="dashboard-side">
+        <!-- Top Personal Bests -->
         <div class="card">
             <div class="card-header">
-                <h2 class="card-title">🏆 Personal Bests</h2>
-                <a href="{% url 'personal_bests' %}" class="btn btn-ghost btn-sm">View All</a>
+                <h2 class="card-title">🏆 Top PRs</h2>
+                <a href="{% url 'personal_bests' %}" class="btn btn-ghost btn-sm">All →</a>
             </div>
             
             {% if personal_bests %}
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="pr-list">
                 {% for pb in personal_bests %}
-                <div class="pb-card">
-                    <div class="pb-exercise">{{ pb.exercise.name }}</div>
-                    <div class="pb-value">{{ pb.weight }}kg</div>
-                    <div class="pb-details">{{ pb.reps }} reps</div>
-                </div>
+                <a href="{% url 'exercise_progress' pb.exercise.id %}" class="pr-item">
+                    <div class="pr-info">
+                        <div class="pr-name">{{ pb.exercise.name }}</div>
+                        <div class="pr-group">{{ pb.exercise.get_muscle_group_display }}</div>
+                    </div>
+                    <div class="pr-value">
+                        <strong>{{ pb.weight }}</strong>kg
+                        <span>× {{ pb.reps }}</span>
+                    </div>
+                </a>
                 {% endfor %}
             </div>
             {% else %}
             <div class="empty-state" style="padding: 2rem;">
-                <p>No records yet. Start lifting!</p>
+                <p>Complete workouts to track PRs!</p>
             </div>
             {% endif %}
         </div>
         
-        <!-- Quick Actions -->
+        <!-- Body Weight -->
         <div class="card">
             <div class="card-header">
-                <h2 class="card-title">⚡ Quick Actions</h2>
+                <h2 class="card-title">⚖️ Body Weight</h2>
+                <a href="{% url 'bodyweight' %}" class="btn btn-ghost btn-sm">Log →</a>
             </div>
-            <div style="display: grid; gap: 0.75rem;">
-                <a href="{% url 'log_workout' %}" class="btn btn-primary" style="width: 100%;">
-                    ➕ Log Workout
-                </a>
-                <a href="{% url 'bodyweight' %}" class="btn btn-secondary" style="width: 100%;">
-                    ⚖️ Log Body Weight
-                </a>
-                <a href="{% url 'templates' %}" class="btn btn-secondary" style="width: 100%;">
-                    📁 Workout Templates
-                </a>
-                <a href="{% url 'goals' %}" class="btn btn-secondary" style="width: 100%;">
-                    🎯 Set a Goal
-                </a>
+            
+            {% if latest_weight %}
+            <div class="bodyweight-display">
+                <div class="bodyweight-value">
+                    <span class="bodyweight-number">{{ latest_weight.weight }}</span>
+                    <span class="bodyweight-unit">kg</span>
+                </div>
+                <div class="bodyweight-date">{{ latest_weight.date|date:"M d, Y" }}</div>
+            </div>
+            {% else %}
+            <a href="{% url 'bodyweight' %}" class="empty-state" style="padding: 1.5rem; display: block; text-decoration: none;">
+                <p style="margin: 0;">Tap to log your weight</p>
+            </a>
+            {% endif %}
+        </div>
+        
+        <!-- Templates -->
+        {% if templates %}
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">📁 Quick Start</h2>
+                <a href="{% url 'templates' %}" class="btn btn-ghost btn-sm">All →</a>
+            </div>
+            
+            <div class="template-list">
+                {% for template in templates|slice:":3" %}
+                <form method="post" action="{% url 'use_template' template.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="template-item">
+                        <span class="template-name">{{ template.name }}</span>
+                        <span class="template-groups">{{ template.get_muscle_groups_display }}</span>
+                    </button>
+                </form>
+                {% endfor %}
             </div>
         </div>
+        {% endif %}
     </div>
 </div>
 
 <style>
-    @media (max-width: 900px) {
-        .content > div[style*="grid-template-columns: 1fr 1fr"] {
-            grid-template-columns: 1fr !important;
+    .quick-actions {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .quick-action-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem 1.5rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        text-decoration: none;
+        color: var(--text-primary);
+        transition: all 0.2s;
+    }
+    
+    .quick-action-card:hover {
+        background: var(--bg-card-hover);
+        border-color: var(--accent);
+        transform: translateY(-2px);
+    }
+    
+    .quick-action-card.primary {
+        background: linear-gradient(135deg, var(--accent) 0%, #2563EB 100%);
+        border: none;
+        color: white;
+    }
+    
+    .quick-action-card.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px var(--accent-glow);
+    }
+    
+    .quick-action-icon {
+        font-size: 2rem;
+    }
+    
+    .quick-action-text {
+        flex: 1;
+    }
+    
+    .quick-action-text strong {
+        display: block;
+        font-size: 1.125rem;
+        font-weight: 600;
+    }
+    
+    .quick-action-text span {
+        font-size: 0.875rem;
+        opacity: 0.8;
+    }
+    
+    .quick-action-arrow {
+        font-size: 1.25rem;
+        opacity: 0.5;
+    }
+    
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: 1.5rem;
+    }
+    
+    .goal-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+    }
+    
+    .goal-item:last-child {
+        border-bottom: none;
+    }
+    
+    .goal-info {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .goal-name {
+        font-weight: 600;
+        margin-bottom: 0.125rem;
+    }
+    
+    .goal-meta {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+    
+    .goal-progress-wrap {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        min-width: 150px;
+    }
+    
+    .goal-progress-wrap .progress-bar {
+        flex: 1;
+    }
+    
+    .goal-percent {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--accent);
+        min-width: 40px;
+        text-align: right;
+    }
+    
+    .pr-list {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .pr-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.875rem 0;
+        border-bottom: 1px solid var(--border);
+        text-decoration: none;
+        color: var(--text-primary);
+        transition: all 0.2s;
+    }
+    
+    .pr-item:last-child {
+        border-bottom: none;
+    }
+    
+    .pr-item:hover {
+        padding-left: 0.5rem;
+    }
+    
+    .pr-name {
+        font-weight: 500;
+        margin-bottom: 0.125rem;
+    }
+    
+    .pr-group {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .pr-value {
+        text-align: right;
+    }
+    
+    .pr-value strong {
+        font-size: 1.25rem;
+        color: var(--accent);
+    }
+    
+    .pr-value span {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+    
+    .bodyweight-display {
+        text-align: center;
+        padding: 1rem 0;
+    }
+    
+    .bodyweight-value {
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+        gap: 0.25rem;
+    }
+    
+    .bodyweight-number {
+        font-size: 3rem;
+        font-weight: 700;
+        color: var(--accent);
+        line-height: 1;
+    }
+    
+    .bodyweight-unit {
+        font-size: 1.25rem;
+        color: var(--text-muted);
+    }
+    
+    .bodyweight-date {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+        margin-top: 0.5rem;
+    }
+    
+    .template-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .template-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        padding: 0.875rem 1rem;
+        background: var(--bg-main);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        cursor: pointer;
+        text-align: left;
+        font-family: inherit;
+        color: var(--text-primary);
+        transition: all 0.2s;
+    }
+    
+    .template-item:hover {
+        background: var(--accent-light);
+        border-color: var(--accent);
+    }
+    
+    .template-name {
+        font-weight: 500;
+    }
+    
+    .template-groups {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    @media (max-width: 1024px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .quick-actions {
+            grid-template-columns: 1fr;
         }
     }
 </style>

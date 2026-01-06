@@ -5,49 +5,44 @@
 
 {% block content %}
 <!-- Filters -->
-<div class="card">
-    <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center;">
-        <!-- Muscle Group Filter -->
-        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-            <a href="{% url 'personal_bests' %}?sort={{ sort_by }}" class="toggle-btn {% if not filter_group %}active{% endif %}">All</a>
-            {% for value, label in muscle_groups %}
-            <a href="{% url 'personal_bests' %}?group={{ value }}&sort={{ sort_by }}" class="toggle-btn {% if filter_group == value %}active{% endif %}">{{ label }}</a>
-            {% endfor %}
-        </div>
-        
-        <!-- Sort -->
-        <div class="toggle-group">
-            <a href="{% url 'personal_bests' %}?sort=weight{% if filter_group %}&group={{ filter_group }}{% endif %}" class="toggle-btn {% if sort_by == 'weight' %}active{% endif %}">By Weight</a>
-            <a href="{% url 'personal_bests' %}?sort=reps{% if filter_group %}&group={{ filter_group }}{% endif %}" class="toggle-btn {% if sort_by == 'reps' %}active{% endif %}">By Reps</a>
-        </div>
+<div class="filters-bar">
+    <div class="filter-chips">
+        <a href="{% url 'personal_bests' %}?sort={{ sort_by }}" class="chip {% if not filter_group %}active{% endif %}">All</a>
+        {% for value, label in muscle_groups %}
+        <a href="{% url 'personal_bests' %}?group={{ value }}&sort={{ sort_by }}" class="chip {% if filter_group == value %}active{% endif %}">{{ label }}</a>
+        {% endfor %}
+    </div>
+    
+    <div class="sort-toggle">
+        <a href="{% url 'personal_bests' %}?sort=weight{% if filter_group %}&group={{ filter_group }}{% endif %}" class="toggle-btn {% if sort_by == 'weight' %}active{% endif %}">By Weight</a>
+        <a href="{% url 'personal_bests' %}?sort=reps{% if filter_group %}&group={{ filter_group }}{% endif %}" class="toggle-btn {% if sort_by == 'reps' %}active{% endif %}">By Reps</a>
     </div>
 </div>
 
-<!-- Personal Bests Grid -->
+<!-- PR Grid -->
 {% if personal_bests %}
-<div class="pb-grid">
+<div class="pr-grid">
     {% for pb in personal_bests %}
-    <div class="card pb-full-card">
-        <div class="pb-header">
-            <span class="pb-rank">#{{ forloop.counter }}</span>
-            <span class="badge badge-primary">{{ pb.exercise.get_muscle_group_display }}</span>
+    <a href="{% url 'exercise_progress' pb.exercise.id %}" class="pr-card {% if forloop.first %}featured{% endif %}">
+        {% if forloop.first %}
+        <div class="pr-crown">👑</div>
+        {% endif %}
+        <div class="pr-rank">#{{ forloop.counter }}</div>
+        <div class="pr-exercise">{{ pb.exercise.name }}</div>
+        <div class="pr-muscle">{{ pb.exercise.get_muscle_group_display }}</div>
+        <div class="pr-main">
+            <span class="pr-weight">{{ pb.weight }}</span>
+            <span class="pr-unit">kg</span>
         </div>
-        <h3 class="pb-title">{{ pb.exercise.name }}</h3>
-        <div class="pb-stats">
-            <div class="pb-main">
-                <span class="pb-weight">{{ pb.weight }}</span>
-                <span class="pb-unit">kg</span>
-            </div>
-            <div class="pb-secondary">× {{ pb.reps }} reps</div>
+        <div class="pr-reps">× {{ pb.reps }} reps</div>
+        <div class="pr-date">{{ pb.date|date:"M d, Y" }}</div>
+        {% if pb.suggestion %}
+        <div class="pr-next">
+            <span class="pr-next-label">Next target:</span>
+            <span class="pr-next-value">{{ pb.suggestion }}kg</span>
         </div>
-        <div class="pb-footer">
-            <span>📅 {{ pb.date|date:"M d, Y" }}</span>
-            {% if pb.suggestion %}
-            <span class="pb-suggestion">Next: {{ pb.suggestion }}kg</span>
-            {% endif %}
-        </div>
-        <a href="{% url 'exercise_progress' pb.exercise.id %}" class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 0.75rem;">View Progress →</a>
-    </div>
+        {% endif %}
+    </a>
     {% endfor %}
 </div>
 {% else %}
@@ -56,77 +51,207 @@
         <div class="empty-state-icon">🏆</div>
         <h3>No personal bests yet</h3>
         <p>Start logging workouts to track your records!</p>
-        <a href="{% url 'log_workout' %}" class="btn btn-primary" style="margin-top: 1rem;">Log Workout</a>
+        <a href="{% url 'log_workout' %}" class="btn btn-primary">Log Workout</a>
     </div>
 </div>
 {% endif %}
 
 <style>
-    .pb-grid {
+    .filters-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .filter-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .chip {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border-radius: var(--radius-full);
+        border: 1px solid var(--border);
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .chip:hover {
+        border-color: var(--accent);
+        color: var(--text-primary);
+    }
+    
+    .chip.active {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: white;
+    }
+    
+    .sort-toggle {
+        display: flex;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+    }
+    
+    .toggle-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .toggle-btn:first-child {
+        border-right: 1px solid var(--border);
+    }
+    
+    .toggle-btn:hover {
+        background: var(--bg-card-hover);
+    }
+    
+    .toggle-btn.active {
+        background: var(--accent);
+        color: white;
+    }
+    
+    .pr-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         gap: 1rem;
     }
     
-    .pb-full-card {
-        margin-bottom: 0;
+    .pr-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        text-decoration: none;
+        color: var(--text-primary);
+        transition: all 0.2s;
+        position: relative;
     }
     
-    .pb-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+    .pr-card:hover {
+        background: var(--bg-card-hover);
+        border-color: var(--border-light);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+    }
+    
+    .pr-card.featured {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 165, 0, 0.05) 100%);
+        border-color: rgba(255, 215, 0, 0.3);
+    }
+    
+    .pr-crown {
+        position: absolute;
+        top: -12px;
+        right: 1rem;
+        font-size: 1.5rem;
+    }
+    
+    .pr-rank {
+        font-size: 0.875rem;
+        font-weight: 700;
+        color: var(--accent);
         margin-bottom: 0.5rem;
     }
     
-    .pb-rank {
-        font-weight: 700;
-        color: var(--accent);
+    .pr-card.featured .pr-rank {
+        color: var(--pr-gold);
     }
     
-    .pb-title {
+    .pr-exercise {
         font-size: 1.125rem;
         font-weight: 600;
-        margin: 0 0 1rem;
+        margin-bottom: 0.25rem;
     }
     
-    .pb-stats {
-        margin-bottom: 0.75rem;
+    .pr-muscle {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
     }
     
-    .pb-main {
+    .pr-main {
         display: flex;
         align-items: baseline;
         gap: 0.25rem;
+        margin-bottom: 0.25rem;
     }
     
-    .pb-weight {
+    .pr-weight {
         font-size: 2.5rem;
         font-weight: 700;
         color: var(--accent);
         line-height: 1;
     }
     
-    .pb-unit {
+    .pr-card.featured .pr-weight {
+        color: var(--pr-gold);
+    }
+    
+    .pr-unit {
         font-size: 1.25rem;
-        color: var(--text-secondary);
+        color: var(--text-muted);
     }
     
-    .pb-secondary {
-        color: var(--text-secondary);
+    .pr-reps {
         font-size: 1rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.75rem;
     }
     
-    .pb-footer {
+    .pr-date {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+    
+    .pr-next {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border);
         display: flex;
         justify-content: space-between;
-        font-size: 0.8125rem;
-        color: var(--text-secondary);
+        align-items: center;
     }
     
-    .pb-suggestion {
+    .pr-next-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .pr-next-value {
+        font-weight: 600;
         color: var(--success);
-        font-weight: 500;
+    }
+    
+    @media (max-width: 768px) {
+        .filters-bar {
+            flex-direction: column;
+        }
+        
+        .filter-chips {
+            width: 100%;
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            padding-bottom: 0.5rem;
+        }
+        
+        .pr-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 {% endblock %}

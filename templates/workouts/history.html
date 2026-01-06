@@ -9,40 +9,29 @@
 
 {% block content %}
 <!-- Filters -->
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title">🔍 Filters</h2>
-        <a href="{% url 'history' %}" class="btn btn-ghost btn-sm">Clear Filters</a>
-    </div>
-    
+<div class="filters-card">
     <form method="get" class="filters-form">
-        <div class="filters-grid">
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">From Date</label>
-                <input type="date" name="date_from" class="form-control" value="{{ filters.date_from|default:'' }}">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label class="form-label">Date Range</label>
+                <div class="date-range">
+                    <input type="date" name="date_from" class="form-control" value="{{ filters.date_from|default:'' }}" placeholder="From">
+                    <span class="date-sep">→</span>
+                    <input type="date" name="date_to" class="form-control" value="{{ filters.date_to|default:'' }}" placeholder="To">
+                </div>
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">To Date</label>
-                <input type="date" name="date_to" class="form-control" value="{{ filters.date_to|default:'' }}">
-            </div>
-            <div class="form-group" style="margin-bottom: 0;">
+            
+            <div class="filter-group">
                 <label class="form-label">Muscle Group</label>
                 <select name="muscle" class="form-control">
-                    <option value="">All</option>
+                    <option value="">All Groups</option>
                     {% for value, label in muscle_groups %}
                     <option value="{{ value }}" {% if filters.muscle == value %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Min Sets</label>
-                <input type="number" name="min_sets" class="form-control" placeholder="0" value="{{ filters.min_sets|default:'' }}" min="0">
-            </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Min Volume (kg)</label>
-                <input type="number" name="min_volume" class="form-control" placeholder="0" value="{{ filters.min_volume|default:'' }}" min="0">
-            </div>
-            <div class="form-group" style="margin-bottom: 0;">
+            
+            <div class="filter-group">
                 <label class="form-label">Sort By</label>
                 <select name="sort" class="form-control">
                     <option value="-date" {% if filters.sort == '-date' %}selected{% endif %}>Newest First</option>
@@ -51,73 +40,297 @@
                     <option value="sets" {% if filters.sort == 'sets' %}selected{% endif %}>Most Sets</option>
                 </select>
             </div>
+            
+            <div class="filter-actions">
+                <button type="submit" class="btn btn-primary">Apply</button>
+                <a href="{% url 'history' %}" class="btn btn-ghost">Clear</a>
+            </div>
         </div>
-        <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">Apply Filters</button>
+        
+        <!-- Quick Filters -->
+        <div class="quick-filters">
+            <span class="quick-filter-label">Quick:</span>
+            <a href="{% url 'history' %}?date_from={% now 'Y-m-d' %}" class="quick-filter {% if filters.date_from == today %}active{% endif %}">Today</a>
+            <a href="{% url 'history' %}" class="quick-filter {% if not filters.date_from and not filters.muscle %}active{% endif %}">All Time</a>
+        </div>
     </form>
 </div>
 
-<!-- Results -->
+<!-- Results Count -->
+<div class="results-header">
+    <span class="results-count">{{ workouts|length }} workout{% if workouts|length != 1 %}s{% endif %}</span>
+</div>
+
+<!-- Timeline -->
+{% if workouts %}
+<div class="workout-timeline">
+    {% for workout in workouts %}
+    <a href="{% url 'workout_detail' workout.id %}" class="timeline-card">
+        <div class="timeline-date">
+            <div class="timeline-date-day">{{ workout.date|date:"d" }}</div>
+            <div class="timeline-date-month">{{ workout.date|date:"M" }}</div>
+        </div>
+        <div class="timeline-content">
+            <div class="timeline-header">
+                <span class="timeline-title">{{ workout.get_muscle_groups_display }}</span>
+                <span class="timeline-day">{{ workout.date|date:"l" }}</span>
+            </div>
+            <div class="timeline-exercises">
+                {% for name, data in workout.get_exercises_summary.items %}
+                {{ name }}{% if not forloop.last %} • {% endif %}
+                {% empty %}
+                No exercises logged
+                {% endfor %}
+            </div>
+            <div class="timeline-stats">
+                <div class="timeline-stat">
+                    <span class="timeline-stat-value">{{ workout.get_total_sets }}</span>
+                    <span class="timeline-stat-label">sets</span>
+                </div>
+                <div class="timeline-stat">
+                    <span class="timeline-stat-value">{{ workout.get_total_volume|floatformat:0 }}</span>
+                    <span class="timeline-stat-label">kg</span>
+                </div>
+                {% if workout.get_exercises_summary|length > 0 %}
+                <div class="timeline-stat">
+                    <span class="timeline-stat-value">{{ workout.get_exercises_summary|length }}</span>
+                    <span class="timeline-stat-label">exercises</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="timeline-arrow">→</div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
 <div class="card">
-    <div class="card-header">
-        <h2 class="card-title">Workouts</h2>
-        <span class="badge badge-primary">{{ workouts|length }} results</span>
-    </div>
-    
-    {% if workouts %}
-    <table>
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Exercises</th>
-                <th>Sets</th>
-                <th>Volume</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for workout in workouts %}
-            <tr onclick="window.location='{% url 'workout_detail' workout.id %}'" style="cursor: pointer;">
-                <td>
-                    <strong>{{ workout.date|date:"M d, Y" }}</strong>
-                    <div style="font-size: 0.75rem; color: var(--text-secondary);">{{ workout.date|date:"l" }}</div>
-                </td>
-                <td>
-                    <span class="badge badge-primary">{{ workout.get_muscle_groups_display }}</span>
-                </td>
-                <td>
-                    {% for name, data in workout.get_exercises_summary.items %}
-                    {{ name }}{% if not forloop.last %}, {% endif %}
-                    {% empty %}
-                    <span style="color: var(--text-secondary);">—</span>
-                    {% endfor %}
-                </td>
-                <td>{{ workout.get_total_sets }}</td>
-                <td>{{ workout.get_total_volume|floatformat:0 }} kg</td>
-                <td>
-                    <a href="{% url 'workout_detail' workout.id %}" class="btn btn-ghost btn-sm">View →</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
     <div class="empty-state">
         <div class="empty-state-icon">📋</div>
         <h3>No workouts found</h3>
-        <p>{% if filters.date_from or filters.date_to or filters.muscle or filters.min_sets or filters.min_volume %}Try adjusting your filters{% else %}Start logging your fitness journey!{% endif %}</p>
+        <p>{% if filters.date_from or filters.date_to or filters.muscle %}Try adjusting your filters{% else %}Start your fitness journey today!{% endif %}</p>
         {% if not filters.date_from and not filters.date_to and not filters.muscle %}
-        <a href="{% url 'log_workout' %}" class="btn btn-primary" style="margin-top: 1rem;">Log First Workout</a>
+        <a href="{% url 'log_workout' %}" class="btn btn-primary">Log Your First Workout</a>
         {% endif %}
     </div>
-    {% endif %}
 </div>
+{% endif %}
 
 <style>
-    .filters-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    .filters-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .filter-row {
+        display: flex;
         gap: 1rem;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+    
+    .filter-group {
+        flex: 1;
+        min-width: 150px;
+    }
+    
+    .filter-group .form-label {
+        margin-bottom: 0.375rem;
+    }
+    
+    .date-range {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .date-range .form-control {
+        flex: 1;
+    }
+    
+    .date-sep {
+        color: var(--text-muted);
+    }
+    
+    .filter-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .quick-filters {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border);
+    }
+    
+    .quick-filter-label {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+    
+    .quick-filter {
+        padding: 0.375rem 0.875rem;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        text-decoration: none;
+        border-radius: var(--radius-full);
+        transition: all 0.2s;
+    }
+    
+    .quick-filter:hover {
+        background: var(--bg-main);
+        color: var(--text-primary);
+    }
+    
+    .quick-filter.active {
+        background: var(--accent-light);
+        color: var(--accent);
+    }
+    
+    .results-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .results-count {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+    }
+    
+    .workout-timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .timeline-card {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        padding: 1.25rem 1.5rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        text-decoration: none;
+        color: var(--text-primary);
+        transition: all 0.2s;
+    }
+    
+    .timeline-card:hover {
+        background: var(--bg-card-hover);
+        border-color: var(--border-light);
+        transform: translateX(4px);
+    }
+    
+    .timeline-date {
+        width: 54px;
+        text-align: center;
+        flex-shrink: 0;
+    }
+    
+    .timeline-date-day {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--accent);
+        line-height: 1;
+    }
+    
+    .timeline-date-month {
+        font-size: 0.6875rem;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        letter-spacing: 0.05em;
+        margin-top: 0.25rem;
+    }
+    
+    .timeline-content {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .timeline-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.375rem;
+    }
+    
+    .timeline-title {
+        font-weight: 600;
+        font-size: 1.0625rem;
+    }
+    
+    .timeline-day {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .timeline-exercises {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.75rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .timeline-stats {
+        display: flex;
+        gap: 1.5rem;
+    }
+    
+    .timeline-stat {
+        display: flex;
+        align-items: baseline;
+        gap: 0.25rem;
+    }
+    
+    .timeline-stat-value {
+        font-weight: 600;
+        font-size: 1rem;
+        font-variant-numeric: tabular-nums;
+    }
+    
+    .timeline-stat-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .timeline-arrow {
+        font-size: 1.25rem;
+        color: var(--text-muted);
+        flex-shrink: 0;
+    }
+    
+    @media (max-width: 768px) {
+        .filter-row {
+            flex-direction: column;
+        }
+        
+        .filter-group {
+            width: 100%;
+        }
+        
+        .date-range {
+            flex-direction: column;
+        }
+        
+        .date-sep {
+            display: none;
+        }
+        
+        .timeline-stats {
+            gap: 1rem;
+        }
     }
 </style>
 {% endblock %}

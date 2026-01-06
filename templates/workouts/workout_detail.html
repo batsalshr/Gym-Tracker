@@ -5,92 +5,285 @@
 
 {% block header_actions %}
 <div style="display: flex; gap: 0.5rem; align-items: center;">
-    <span class="badge badge-primary">{{ workout.date|date:"l, M d, Y" }}</span>
-    <a href="{% url 'add_exercises' workout.id %}" class="btn btn-secondary">+ Add Exercises</a>
+    <a href="{% url 'add_exercises' workout.id %}" class="btn btn-secondary btn-sm">+ Add Exercises</a>
     <form method="post" action="{% url 'delete_workout' workout.id %}" style="display: inline;">
         {% csrf_token %}
-        <button type="submit" class="btn btn-ghost" style="color: var(--danger);" onclick="return confirm('Delete this workout?')">🗑️</button>
+        <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--danger);" onclick="return confirm('Delete this workout?')">🗑️</button>
     </form>
 </div>
 {% endblock %}
 
 {% block content %}
+<!-- Workout Header -->
+<div class="workout-header-card">
+    <div class="workout-header-date">
+        <span class="workout-date-big">{{ workout.date|date:"d" }}</span>
+        <span class="workout-date-month">{{ workout.date|date:"M Y" }}</span>
+        <span class="workout-date-day">{{ workout.date|date:"l" }}</span>
+    </div>
+    <div class="workout-header-info">
+        <h2 class="workout-type">{{ workout.get_muscle_groups_display }}</h2>
+        {% if workout.notes %}
+        <p class="workout-notes">{{ workout.notes }}</p>
+        {% endif %}
+    </div>
+</div>
+
 <!-- Stats -->
 <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
     <div class="stat-card">
+        <div class="stat-icon blue">📊</div>
         <div class="stat-label">Total Sets</div>
-        <div class="stat-value accent">{{ workout.get_total_sets }}</div>
+        <div class="stat-value accent font-mono">{{ workout.get_total_sets }}</div>
     </div>
     <div class="stat-card">
+        <div class="stat-icon green">💪</div>
         <div class="stat-label">Total Volume</div>
-        <div class="stat-value">{{ total_volume|floatformat:0 }}<span style="font-size: 1rem; color: var(--text-secondary);">kg</span></div>
+        <div class="stat-value font-mono">{{ total_volume|floatformat:0 }}<span style="font-size: 1rem; color: var(--text-muted);">kg</span></div>
     </div>
     <div class="stat-card">
+        <div class="stat-icon orange">🏋️</div>
         <div class="stat-label">Exercises</div>
-        <div class="stat-value">{{ exercises_data|length }}</div>
+        <div class="stat-value font-mono">{{ exercises_data|length }}</div>
     </div>
 </div>
-
-{% if workout.notes %}
-<div class="hint-box" style="background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border);">
-    <span>📝</span>
-    <span>{{ workout.notes }}</span>
-</div>
-{% endif %}
 
 <!-- Exercises -->
 {% if exercises_data %}
-{% for name, data in exercises_data.items %}
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title">{{ name }}</h2>
-        <span class="badge badge-primary">{{ data.exercise.get_muscle_group_display }}</span>
-    </div>
-    
-    <table>
-        <thead>
-            <tr>
-                <th>Set</th>
-                <th>Weight</th>
-                <th>Reps</th>
-                <th>Volume</th>
-                <th>Notes</th>
-            </tr>
-        </thead>
-        <tbody>
+<div class="exercises-list">
+    {% for name, data in exercises_data.items %}
+    <div class="exercise-card">
+        <div class="exercise-header">
+            <div class="exercise-info">
+                <h3 class="exercise-name">{{ name }}</h3>
+                <span class="badge badge-primary">{{ data.exercise.get_muscle_group_display }}</span>
+            </div>
+            <a href="{% url 'exercise_progress' data.exercise.id %}" class="btn btn-ghost btn-sm">View Progress →</a>
+        </div>
+        
+        <div class="sets-grid">
             {% for set in data.sets %}
-            <tr>
-                <td><strong>Set {{ forloop.counter }}</strong></td>
-                <td>{{ set.weight }} kg</td>
-                <td>{{ set.reps }}</td>
-                <td style="color: var(--text-secondary);">{{ set.get_volume|floatformat:0 }} kg</td>
-                <td style="color: var(--text-secondary);">{{ set.notes|default:"—" }}</td>
-            </tr>
+            <div class="set-item {% if forloop.first %}{% endif %}">
+                <span class="set-num">{{ forloop.counter }}</span>
+                <span class="set-weight">{{ set.weight }}<small>kg</small></span>
+                <span class="set-reps">{{ set.reps }}<small>reps</small></span>
+                <span class="set-volume">{{ set.get_volume|floatformat:0 }}<small>kg</small></span>
+            </div>
             {% endfor %}
-        </tbody>
-    </table>
-    
-    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between;">
-        <span style="color: var(--text-secondary); font-size: 0.875rem;">
-            Max: <strong>{{ data.sets.0.weight }}kg</strong> • 
-            Total Volume: <strong>{% widthratio data.sets|length 1 1 as total %}{% for s in data.sets %}{% if forloop.first %}{% widthratio s.weight 1 s.reps as vol %}{{ vol }}{% endif %}{% endfor %}</strong>
-        </span>
-        <a href="{% url 'exercise_progress' data.exercise.id %}" class="btn btn-ghost btn-sm">View Progress →</a>
+        </div>
+        
+        <div class="exercise-summary">
+            <span>{{ data.sets|length }} sets</span>
+            <span>•</span>
+            <span>{% widthratio 1 1 1 as t %}{% for s in data.sets %}{% with vol=s.get_volume %}{% endwith %}{% endfor %}Volume: {{ data.sets.0.workout.get_total_volume|floatformat:0 }}kg total</span>
+        </div>
     </div>
+    {% endfor %}
 </div>
-{% endfor %}
 {% else %}
 <div class="card">
     <div class="empty-state">
         <div class="empty-state-icon">🏋️</div>
         <h3>No exercises logged</h3>
         <p>Add some exercises to this workout!</p>
-        <a href="{% url 'add_exercises' workout.id %}" class="btn btn-primary" style="margin-top: 1rem;">Add Exercises</a>
+        <a href="{% url 'add_exercises' workout.id %}" class="btn btn-primary">Add Exercises</a>
     </div>
 </div>
 {% endif %}
 
-<div style="margin-top: 2rem; text-align: center;">
+<!-- Actions -->
+<div class="workout-actions">
     <a href="{% url 'history' %}" class="btn btn-secondary">← Back to History</a>
+    <a href="{% url 'add_exercises' workout.id %}" class="btn btn-primary">+ Add More Exercises</a>
 </div>
+
+<style>
+    .workout-header-card {
+        display: flex;
+        gap: 1.5rem;
+        padding: 1.5rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        margin-bottom: 1.5rem;
+    }
+    
+    .workout-header-date {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-right: 1.5rem;
+        border-right: 1px solid var(--border);
+    }
+    
+    .workout-date-big {
+        font-size: 3rem;
+        font-weight: 700;
+        color: var(--accent);
+        line-height: 1;
+    }
+    
+    .workout-date-month {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        margin-top: 0.25rem;
+    }
+    
+    .workout-date-day {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+    
+    .workout-header-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    
+    .workout-type {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0 0 0.25rem;
+    }
+    
+    .workout-notes {
+        color: var(--text-secondary);
+        margin: 0;
+    }
+    
+    .exercises-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .exercise-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+    }
+    
+    .exercise-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .exercise-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .exercise-name {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin: 0;
+    }
+    
+    .sets-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 0.75rem;
+    }
+    
+    .set-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        background: var(--bg-main);
+        border-radius: var(--radius);
+    }
+    
+    .set-num {
+        width: 24px;
+        height: 24px;
+        background: var(--accent-light);
+        color: var(--accent);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    
+    .set-weight {
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
+    
+    .set-weight small,
+    .set-reps small,
+    .set-volume small {
+        font-weight: 400;
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        margin-left: 0.125rem;
+    }
+    
+    .set-reps {
+        color: var(--text-secondary);
+    }
+    
+    .set-volume {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+        margin-left: auto;
+    }
+    
+    .exercise-summary {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border);
+        font-size: 0.875rem;
+        color: var(--text-muted);
+    }
+    
+    .workout-actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border);
+    }
+    
+    @media (max-width: 768px) {
+        .workout-header-card {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .workout-header-date {
+            padding-right: 0;
+            padding-bottom: 1rem;
+            border-right: none;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .sets-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .workout-actions {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .workout-actions .btn {
+            width: 100%;
+        }
+    }
+</style>
 {% endblock %}

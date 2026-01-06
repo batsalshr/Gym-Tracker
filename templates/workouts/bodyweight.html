@@ -4,101 +4,215 @@
 {% block page_title %}Body Weight{% endblock %}
 
 {% block content %}
+<!-- Quick Log -->
+<div class="card">
+    <form method="post" class="quick-log-form">
+        {% csrf_token %}
+        <div class="quick-log-input">
+            <input type="number" name="weight" class="weight-input" placeholder="75.0" step="0.1" min="0" required>
+            <span class="weight-unit">kg</span>
+        </div>
+        <div class="quick-log-meta">
+            <input type="date" name="date" class="form-control" value="{{ today }}" required>
+            <input type="text" name="notes" class="form-control" placeholder="Morning, post-workout, etc.">
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg">Log Weight</button>
+    </form>
+</div>
+
 <!-- Stats -->
 <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
     <div class="stat-card">
-        <div class="stat-label">Current Weight</div>
-        <div class="stat-value accent">{% if latest %}{{ latest.weight }}{% else %}—{% endif %}</div>
-        <div class="stat-label">{% if latest %}{{ latest.date|date:"M d" }}{% else %}No entries{% endif %}</div>
+        <div class="stat-icon blue">⚖️</div>
+        <div class="stat-label">Current</div>
+        <div class="stat-value accent font-mono">{% if latest %}{{ latest.weight }}{% else %}—{% endif %}</div>
+        <div class="stat-change">{% if latest %}{{ latest.date|date:"M d" }}{% endif %}</div>
     </div>
     <div class="stat-card">
+        <div class="stat-icon {% if change < 0 %}green{% elif change > 0 %}orange{% else %}blue{% endif %}">
+            {% if change < 0 %}📉{% elif change > 0 %}📈{% else %}➡️{% endif %}
+        </div>
         <div class="stat-label">30 Day Change</div>
-        <div class="stat-value" style="color: {% if change < 0 %}var(--success){% elif change > 0 %}var(--warning){% else %}var(--text-primary){% endif %}">
-            {% if change %}{{ change|floatformat:1 }}{% else %}—{% endif %}
+        <div class="stat-value font-mono {% if change < 0 %}success{% elif change > 0 %}warning{% endif %}">
+            {% if change %}{% if change > 0 %}+{% endif %}{{ change|floatformat:1 }}{% else %}—{% endif %}
         </div>
-        <div class="stat-label">{% if change %}kg{% else %}Not enough data{% endif %}</div>
+        <div class="stat-change">{% if change %}kg{% else %}Not enough data{% endif %}</div>
     </div>
     <div class="stat-card">
+        <div class="stat-icon orange">📊</div>
         <div class="stat-label">Entries</div>
-        <div class="stat-value">{{ weights|length }}</div>
-        <div class="stat-label">Last 30 days</div>
+        <div class="stat-value font-mono">{{ weights|length }}</div>
+        <div class="stat-change">last 30 days</div>
     </div>
-</div>
-
-<!-- Log Weight -->
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title">Log Weight</h2>
-    </div>
-    
-    <form method="post" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
-        {% csrf_token %}
-        <div class="form-group" style="margin-bottom: 0; width: 150px;">
-            <label class="form-label">Date</label>
-            <input type="date" name="date" class="form-control" value="{{ today }}" required>
-        </div>
-        <div class="form-group" style="margin-bottom: 0; width: 120px;">
-            <label class="form-label">Weight (kg)</label>
-            <input type="number" name="weight" class="form-control" step="0.1" min="0" placeholder="75.5" required>
-        </div>
-        <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 150px;">
-            <label class="form-label">Notes</label>
-            <input type="text" name="notes" class="form-control" placeholder="Morning, after workout, etc.">
-        </div>
-        <button type="submit" class="btn btn-primary">Log Weight</button>
-    </form>
 </div>
 
 {% if chart_data %}
 <!-- Chart -->
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">Weight Trend</h2>
+        <h2 class="card-title">📈 Weight Trend</h2>
     </div>
-    <canvas id="weightChart" height="80"></canvas>
+    <div class="chart-container">
+        <canvas id="weightChart"></canvas>
+    </div>
 </div>
 {% endif %}
 
 <!-- History -->
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">History</h2>
+        <h2 class="card-title">📋 History</h2>
     </div>
     
     {% if weights %}
-    <table>
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Weight</th>
-                <th>Notes</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for entry in weights %}
-            <tr>
-                <td>{{ entry.date|date:"M d, Y" }}</td>
-                <td><strong>{{ entry.weight }} kg</strong></td>
-                <td style="color: var(--text-secondary);">{{ entry.notes|default:"—" }}</td>
-                <td>
-                    <form method="post" action="{% url 'delete_bodyweight' entry.id %}" style="display: inline;">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--danger);" onclick="return confirm('Delete this entry?')">×</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="weight-history">
+        {% for entry in weights %}
+        <div class="weight-entry">
+            <div class="weight-entry-date">
+                <span class="weight-date-day">{{ entry.date|date:"d" }}</span>
+                <span class="weight-date-month">{{ entry.date|date:"M" }}</span>
+            </div>
+            <div class="weight-entry-value">
+                <strong>{{ entry.weight }}</strong> kg
+            </div>
+            <div class="weight-entry-notes">{{ entry.notes|default:"—" }}</div>
+            <form method="post" action="{% url 'delete_bodyweight' entry.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--danger);" onclick="return confirm('Delete?')">✕</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
     {% else %}
-    <div class="empty-state">
-        <div class="empty-state-icon">⚖️</div>
-        <h3>No weight entries</h3>
-        <p>Start tracking your weight!</p>
+    <div class="empty-state" style="padding: 2rem;">
+        <p>No weight entries yet. Log your first weight above!</p>
     </div>
     {% endif %}
 </div>
+
+<style>
+    .quick-log-form {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .quick-log-input {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .weight-input {
+        width: 140px;
+        padding: 1rem;
+        font-size: 2rem;
+        font-weight: 700;
+        text-align: center;
+        border: 2px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--bg-input);
+        color: var(--accent);
+        font-variant-numeric: tabular-nums;
+    }
+    
+    .weight-input:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+    
+    .weight-unit {
+        font-size: 1.25rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+    
+    .quick-log-meta {
+        display: flex;
+        gap: 0.75rem;
+        flex: 1;
+    }
+    
+    .quick-log-meta .form-control {
+        max-width: 180px;
+    }
+    
+    .chart-container {
+        height: 250px;
+    }
+    
+    .weight-history {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .weight-entry {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.875rem 0;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .weight-entry:last-child {
+        border-bottom: none;
+    }
+    
+    .weight-entry-date {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 40px;
+    }
+    
+    .weight-date-day {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--accent);
+        line-height: 1;
+    }
+    
+    .weight-date-month {
+        font-size: 0.625rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+    }
+    
+    .weight-entry-value {
+        min-width: 80px;
+    }
+    
+    .weight-entry-value strong {
+        font-size: 1.125rem;
+        font-variant-numeric: tabular-nums;
+    }
+    
+    .weight-entry-notes {
+        flex: 1;
+        color: var(--text-muted);
+        font-size: 0.875rem;
+    }
+    
+    @media (max-width: 768px) {
+        .quick-log-form {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .quick-log-input {
+            justify-content: center;
+        }
+        
+        .quick-log-meta {
+            flex-direction: column;
+        }
+        
+        .quick-log-meta .form-control {
+            max-width: none;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -115,21 +229,32 @@ new Chart(ctx, {
         datasets: [{
             label: 'Weight (kg)',
             data: data.map(d => d.weight),
-            borderColor: '#3A86FF',
-            backgroundColor: 'rgba(58, 134, 255, 0.1)',
-            tension: 0.3,
+            borderColor: '#3B82F6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            tension: 0.4,
             fill: true,
             pointRadius: 4,
-            pointBackgroundColor: '#3A86FF',
+            pointBackgroundColor: '#3B82F6',
+            pointBorderColor: '#1A1A2E',
+            pointBorderWidth: 2,
         }]
     },
     options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
             legend: { display: false }
         },
         scales: {
-            y: { beginAtZero: false }
+            y: { 
+                beginAtZero: false,
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                ticks: { color: '#9CA3AF' }
+            },
+            x: {
+                grid: { display: false },
+                ticks: { color: '#9CA3AF' }
+            }
         }
     }
 });
