@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit {{ template.name }} - Gym Tracker{% endblock %}
+{% block page_title %}Edit: {{ template.name }}{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'templates' %}" class="btn btn-secondary">← Back to Templates</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Template Info</h2>
+    </div>
+    <p><strong>Name:</strong> {{ template.name }}</p>
+    <p><strong>Muscle Groups:</strong> {{ template.get_muscle_groups_display }}</p>
+</div>
+
+<!-- Current Exercises -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Exercises</h2>
+        <span class="badge badge-primary">{{ template.exercises.count }} exercises</span>
+    </div>
+    
+    {% if template.exercises.all %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Exercise</th>
+                <th>Sets</th>
+                <th>Reps</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for te in template.exercises.all %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td><strong>{{ te.exercise.name }}</strong></td>
+                <td>{{ te.target_sets }}</td>
+                <td>{{ te.target_reps }}</td>
+                <td>
+                    <form method="post" action="{% url 'delete_template_exercise' te.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--danger);">×</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state" style="padding: 2rem;">
+        <p>No exercises added yet.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Add Exercise -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Add Exercise</h2>
+    </div>
+    
+    <form method="post" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+        {% csrf_token %}
+        <div class="form-group" style="margin-bottom: 0; flex: 2; min-width: 200px;">
+            <label class="form-label">Exercise</label>
+            <select name="exercise" class="form-control" required>
+                <option value="">Choose an exercise...</option>
+                {% regroup exercises by get_muscle_group_display as grouped %}
+                {% for group in grouped %}
+                <optgroup label="{{ group.grouper }}">
+                    {% for ex in group.list %}
+                    <option value="{{ ex.id }}">{{ ex.name }}</option>
+                    {% endfor %}
+                </optgroup>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0; width: 80px;">
+            <label class="form-label">Sets</label>
+            <input type="number" name="target_sets" class="form-control" value="3" min="1" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 0; width: 100px;">
+            <label class="form-label">Reps</label>
+            <input type="text" name="target_reps" class="form-control" value="8-12" placeholder="8-12">
+        </div>
+        <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+</div>
+
+<!-- Use Template -->
+<div style="margin-top: 2rem; text-align: center;">
+    <form method="post" action="{% url 'use_template' template.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary btn-lg">Use This Template</button>
+    </form>
+</div>
+{% endblock %}

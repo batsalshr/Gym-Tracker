@@ -1,66 +1,132 @@
 {% extends 'base.html' %}
 
 {% block title %}Personal Bests - Gym Tracker{% endblock %}
-{% block page_title %}Personal Records{% endblock %}
+{% block page_title %}Personal Bests{% endblock %}
 
 {% block content %}
-<!-- Toggle -->
-<div style="margin-bottom: 1.5rem;">
-    <div class="toggle-group">
-        <a href="?sort=weight" class="toggle-btn {% if sort_by == 'weight' %}active{% endif %}">Heaviest Weight</a>
-        <a href="?sort=reps" class="toggle-btn {% if sort_by == 'reps' %}active{% endif %}">Most Reps</a>
+<!-- Filters -->
+<div class="card">
+    <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center;">
+        <!-- Muscle Group Filter -->
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+            <a href="{% url 'personal_bests' %}?sort={{ sort_by }}" class="toggle-btn {% if not filter_group %}active{% endif %}">All</a>
+            {% for value, label in muscle_groups %}
+            <a href="{% url 'personal_bests' %}?group={{ value }}&sort={{ sort_by }}" class="toggle-btn {% if filter_group == value %}active{% endif %}">{{ label }}</a>
+            {% endfor %}
+        </div>
+        
+        <!-- Sort -->
+        <div class="toggle-group">
+            <a href="{% url 'personal_bests' %}?sort=weight{% if filter_group %}&group={{ filter_group }}{% endif %}" class="toggle-btn {% if sort_by == 'weight' %}active{% endif %}">By Weight</a>
+            <a href="{% url 'personal_bests' %}?sort=reps{% if filter_group %}&group={{ filter_group }}{% endif %}" class="toggle-btn {% if sort_by == 'reps' %}active{% endif %}">By Reps</a>
+        </div>
     </div>
 </div>
 
+<!-- Personal Bests Grid -->
 {% if personal_bests %}
-<div class="card">
-    <table>
-        <thead>
-            <tr>
-                <th></th>
-                <th>Exercise</th>
-                <th>Record</th>
-                <th>Date</th>
-                <th>Next Target</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for pb in personal_bests %}
-            <tr>
-                <td style="text-align: center; font-size: 1.25rem;">
-                    {% if forloop.counter == 1 %}🥇
-                    {% elif forloop.counter == 2 %}🥈
-                    {% elif forloop.counter == 3 %}🥉
-                    {% else %}<span style="color: var(--text-secondary);">#{{ forloop.counter }}</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <strong>{{ pb.exercise.name }}</strong>
-                    <div style="font-size: 0.75rem; color: var(--text-secondary);">{{ pb.exercise.get_muscle_group_display }}</div>
-                </td>
-                <td>
-                    <span class="pb-value" style="font-size: 1.25rem;">{{ pb.weight }} kg</span>
-                    <span style="color: var(--text-secondary);">× {{ pb.reps }}</span>
-                </td>
-                <td style="color: var(--text-secondary);">{{ pb.date|date:"M d, Y" }}</td>
-                <td>
-                    {% if pb.suggestion %}
-                    <span class="badge badge-success">{{ pb.suggestion }} kg</span>
-                    {% else %}—{% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="pb-grid">
+    {% for pb in personal_bests %}
+    <div class="card pb-full-card">
+        <div class="pb-header">
+            <span class="pb-rank">#{{ forloop.counter }}</span>
+            <span class="badge badge-primary">{{ pb.exercise.get_muscle_group_display }}</span>
+        </div>
+        <h3 class="pb-title">{{ pb.exercise.name }}</h3>
+        <div class="pb-stats">
+            <div class="pb-main">
+                <span class="pb-weight">{{ pb.weight }}</span>
+                <span class="pb-unit">kg</span>
+            </div>
+            <div class="pb-secondary">× {{ pb.reps }} reps</div>
+        </div>
+        <div class="pb-footer">
+            <span>📅 {{ pb.date|date:"M d, Y" }}</span>
+            {% if pb.suggestion %}
+            <span class="pb-suggestion">Next: {{ pb.suggestion }}kg</span>
+            {% endif %}
+        </div>
+        <a href="{% url 'exercise_progress' pb.exercise.id %}" class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 0.75rem;">View Progress →</a>
+    </div>
+    {% endfor %}
 </div>
 {% else %}
 <div class="card">
     <div class="empty-state">
         <div class="empty-state-icon">🏆</div>
         <h3>No personal bests yet</h3>
-        <p>Complete workouts to start tracking your records!</p>
-        <a href="{% url 'log_workout' %}" class="btn btn-primary" style="margin-top: 1rem;">Start Workout</a>
+        <p>Start logging workouts to track your records!</p>
+        <a href="{% url 'log_workout' %}" class="btn btn-primary" style="margin-top: 1rem;">Log Workout</a>
     </div>
 </div>
 {% endif %}
+
+<style>
+    .pb-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+    }
+    
+    .pb-full-card {
+        margin-bottom: 0;
+    }
+    
+    .pb-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    .pb-rank {
+        font-weight: 700;
+        color: var(--accent);
+    }
+    
+    .pb-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin: 0 0 1rem;
+    }
+    
+    .pb-stats {
+        margin-bottom: 0.75rem;
+    }
+    
+    .pb-main {
+        display: flex;
+        align-items: baseline;
+        gap: 0.25rem;
+    }
+    
+    .pb-weight {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--accent);
+        line-height: 1;
+    }
+    
+    .pb-unit {
+        font-size: 1.25rem;
+        color: var(--text-secondary);
+    }
+    
+    .pb-secondary {
+        color: var(--text-secondary);
+        font-size: 1rem;
+    }
+    
+    .pb-footer {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+    }
+    
+    .pb-suggestion {
+        color: var(--success);
+        font-weight: 500;
+    }
+</style>
 {% endblock %}

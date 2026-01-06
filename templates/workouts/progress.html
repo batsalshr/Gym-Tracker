@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ exercise.name }} Progress - Gym Tracker{% endblock %}
+{% block page_title %}{{ exercise.name }}{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'exercises' %}" class="btn btn-secondary">← Back to Exercises</a>
+{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+    <div class="stat-card">
+        <div class="stat-label">Personal Best</div>
+        <div class="stat-value accent">{% if pb %}{{ pb.weight }}{% else %}—{% endif %}</div>
+        <div class="stat-label">{% if pb %}{{ pb.reps }} reps{% endif %}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Next Target</div>
+        <div class="stat-value">{% if suggestion %}{{ suggestion }}{% else %}—{% endif %}</div>
+        <div class="stat-label">kg suggested</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Muscle Group</div>
+        <div class="stat-value" style="font-size: 1.25rem;">{{ exercise.get_muscle_group_display }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Workouts</div>
+        <div class="stat-value">{{ progress_data|length }}</div>
+    </div>
+</div>
+
+{% if progress_data %}
+<!-- Chart -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">📈 Weight Progression</h2>
+    </div>
+    <canvas id="progressChart" height="80"></canvas>
+</div>
+
+<!-- History -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">📋 History</h2>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Max Weight</th>
+                <th>Volume</th>
+                <th>Sets</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in progress_data reversed %}
+            <tr>
+                <td>{{ entry.date }}</td>
+                <td><strong>{{ entry.max_weight }} kg</strong></td>
+                <td>{{ entry.volume|floatformat:0 }} kg</td>
+                <td>{{ entry.sets }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card">
+    <div class="empty-state">
+        <div class="empty-state-icon">📈</div>
+        <h3>No data yet</h3>
+        <p>Log some sets of {{ exercise.name }} to see your progress!</p>
+        <a href="{% url 'log_workout' %}" class="btn btn-primary" style="margin-top: 1rem;">Log Workout</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if progress_data %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const data = {{ progress_data|safe }};
+
+const ctx = document.getElementById('progressChart').getContext('2d');
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: data.map(d => d.date),
+        datasets: [{
+            label: 'Max Weight (kg)',
+            data: data.map(d => d.max_weight),
+            borderColor: '#3A86FF',
+            backgroundColor: 'rgba(58, 134, 255, 0.1)',
+            tension: 0.3,
+            fill: true,
+            pointRadius: 5,
+            pointBackgroundColor: '#3A86FF',
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: { 
+                beginAtZero: false,
+                title: { display: true, text: 'Weight (kg)' }
+            }
+        }
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -4,31 +4,97 @@
 {% block page_title %}Log a Workout{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 600px;">
+{% if templates %}
+<!-- Quick Start from Template -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">⚡ Quick Start from Template</h2>
+    </div>
+    
+    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+        {% for template in templates %}
+        <form method="post" style="display: inline;">
+            {% csrf_token %}
+            <input type="hidden" name="template" value="{{ template.id }}">
+            <input type="hidden" name="date" value="{{ today }}">
+            <button type="submit" class="template-btn">
+                <span class="template-btn-name">{{ template.name }}</span>
+                <span class="template-btn-groups">{{ template.get_muscle_groups_display }}</span>
+            </button>
+        </form>
+        {% endfor %}
+    </div>
+</div>
+
+<div style="text-align: center; color: var(--text-secondary); margin: 1.5rem 0;">— or create custom workout —</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Select Muscle Groups</h2>
+        <p style="color: var(--text-secondary); font-size: 0.875rem; margin: 0;">Click to select one or more</p>
+    </div>
+    
     <form method="post">
         {% csrf_token %}
         
-        <div class="form-group">
-            <label class="form-label">Workout Type</label>
-            <select name="day_type" class="form-control" required>
-                <option value="">Select workout type...</option>
-                {% for value, label in day_types %}
-                <option value="{{ value }}">{{ label }}</option>
-                {% endfor %}
-            </select>
+        <!-- Muscle Group Cards -->
+        <div class="muscle-grid">
+            {% for value, label in muscle_groups %}
+            <label class="muscle-card">
+                <input type="checkbox" name="muscle_groups" value="{{ value }}">
+                <div class="muscle-card-content">
+                    <span class="muscle-icon">
+                        {% if value == 'chest' %}🏋️
+                        {% elif value == 'back' %}🔙
+                        {% elif value == 'shoulders' %}💪
+                        {% elif value == 'legs' %}🦵
+                        {% elif value == 'biceps' %}💪
+                        {% elif value == 'triceps' %}🔱
+                        {% elif value == 'core' %}🎯
+                        {% elif value == 'cardio' %}🏃
+                        {% elif value == 'glutes' %}🍑
+                        {% elif value == 'calves' %}🦶
+                        {% elif value == 'forearms' %}✊
+                        {% elif value == 'traps' %}⬆️
+                        {% else %}⚡
+                        {% endif %}
+                    </span>
+                    <span class="muscle-name">{{ label }}</span>
+                </div>
+            </label>
+            {% endfor %}
         </div>
         
-        <div class="form-group">
-            <label class="form-label">Date</label>
-            <input type="date" name="date" class="form-control" value="{{ today }}" required>
+        <!-- Quick Presets -->
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+            <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Quick presets:</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="selectGroups(['chest', 'triceps'])">Chest + Triceps</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="selectGroups(['back', 'biceps'])">Back + Biceps</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="selectGroups(['legs', 'glutes'])">Legs + Glutes</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="selectGroups(['shoulders', 'triceps'])">Shoulders + Triceps</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="selectGroups(['chest', 'back', 'shoulders'])">Upper Body</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="selectGroups(['legs', 'glutes', 'calves'])">Lower Body</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="selectGroups(['chest', 'shoulders', 'triceps'])">Push</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="selectGroups(['back', 'biceps', 'forearms'])">Pull</button>
+            </div>
         </div>
         
-        <div class="form-group">
-            <label class="form-label">Notes (optional)</label>
-            <textarea name="notes" class="form-control" rows="2" placeholder="How are you feeling today?"></textarea>
+        <!-- Date and Notes -->
+        <div style="display: grid; grid-template-columns: 200px 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Date</label>
+                <input type="date" name="date" class="form-control" value="{{ today }}" required>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Notes (optional)</label>
+                <input type="text" name="notes" class="form-control" placeholder="How are you feeling today?">
+            </div>
         </div>
         
-        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
             <button type="submit" class="btn btn-primary btn-lg">
                 Continue → Add Exercises
             </button>
@@ -36,4 +102,102 @@
         </div>
     </form>
 </div>
+
+<style>
+    .muscle-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 0.75rem;
+    }
+    
+    .muscle-card {
+        cursor: pointer;
+    }
+    
+    .muscle-card input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+    
+    .muscle-card-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1.25rem 0.75rem;
+        background: var(--bg-main);
+        border: 2px solid var(--border);
+        border-radius: var(--radius);
+        transition: all 0.2s;
+    }
+    
+    .muscle-card input:checked + .muscle-card-content {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: white;
+        transform: scale(1.02);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .muscle-card-content:hover {
+        border-color: var(--accent);
+    }
+    
+    .muscle-icon {
+        font-size: 1.75rem;
+        margin-bottom: 0.375rem;
+    }
+    
+    .muscle-name {
+        font-weight: 600;
+        font-size: 0.8125rem;
+    }
+    
+    .template-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1rem 1.25rem;
+        background: var(--bg-main);
+        border: 2px solid var(--border);
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: all 0.2s;
+        min-width: 160px;
+    }
+    
+    .template-btn:hover {
+        border-color: var(--accent);
+        background: var(--accent-light);
+    }
+    
+    .template-btn-name {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .template-btn-groups {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin-top: 0.25rem;
+    }
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function selectGroups(groups) {
+    // Uncheck all first
+    document.querySelectorAll('input[name="muscle_groups"]').forEach(cb => {
+        cb.checked = false;
+    });
+    
+    // Check selected groups
+    groups.forEach(group => {
+        const checkbox = document.querySelector(`input[name="muscle_groups"][value="${group}"]`);
+        if (checkbox) checkbox.checked = true;
+    });
+}
+</script>
 {% endblock %}

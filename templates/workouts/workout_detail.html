@@ -1,47 +1,50 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ workout }} - Gym Tracker{% endblock %}
-{% block page_title %}{{ workout.get_day_type_display }}{% endblock %}
+{% block title %}Workout Details - Gym Tracker{% endblock %}
+{% block page_title %}{{ workout.get_muscle_groups_display }}{% endblock %}
 
 {% block header_actions %}
-<div style="display: flex; gap: 0.5rem;">
-    <a href="{% url 'add_exercises' workout.id %}" class="btn btn-secondary">+ Add More</a>
+<div style="display: flex; gap: 0.5rem; align-items: center;">
+    <span class="badge badge-primary">{{ workout.date|date:"l, M d, Y" }}</span>
+    <a href="{% url 'add_exercises' workout.id %}" class="btn btn-secondary">+ Add Exercises</a>
     <form method="post" action="{% url 'delete_workout' workout.id %}" style="display: inline;">
         {% csrf_token %}
-        <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this workout?')">Delete</button>
+        <button type="submit" class="btn btn-ghost" style="color: var(--danger);" onclick="return confirm('Delete this workout?')">🗑️</button>
     </form>
 </div>
 {% endblock %}
 
 {% block content %}
-<!-- Workout Info -->
+<!-- Stats -->
 <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
-    <div class="stat-card">
-        <div class="stat-label">Date</div>
-        <div class="stat-value" style="font-size: 1.5rem;">{{ workout.date|date:"M d, Y" }}</div>
-    </div>
     <div class="stat-card">
         <div class="stat-label">Total Sets</div>
         <div class="stat-value accent">{{ workout.get_total_sets }}</div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Total Volume</div>
-        <div class="stat-value">{{ total_volume|floatformat:0 }} kg</div>
+        <div class="stat-value">{{ total_volume|floatformat:0 }}<span style="font-size: 1rem; color: var(--text-secondary);">kg</span></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Exercises</div>
+        <div class="stat-value">{{ exercises_data|length }}</div>
     </div>
 </div>
 
 {% if workout.notes %}
-<div class="card">
-    <strong>Notes:</strong> {{ workout.notes }}
+<div class="hint-box" style="background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border);">
+    <span>📝</span>
+    <span>{{ workout.notes }}</span>
 </div>
 {% endif %}
 
 <!-- Exercises -->
+{% if exercises_data %}
 {% for name, data in exercises_data.items %}
 <div class="card">
     <div class="card-header">
         <h2 class="card-title">{{ name }}</h2>
-        <span class="badge badge-primary">{{ data.sets|length }} sets</span>
+        <span class="badge badge-primary">{{ data.exercise.get_muscle_group_display }}</span>
     </div>
     
     <table>
@@ -57,7 +60,7 @@
         <tbody>
             {% for set in data.sets %}
             <tr>
-                <td><strong>{{ forloop.counter }}</strong></td>
+                <td><strong>Set {{ forloop.counter }}</strong></td>
                 <td>{{ set.weight }} kg</td>
                 <td>{{ set.reps }}</td>
                 <td style="color: var(--text-secondary);">{{ set.get_volume|floatformat:0 }} kg</td>
@@ -66,19 +69,28 @@
             {% endfor %}
         </tbody>
     </table>
+    
+    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between;">
+        <span style="color: var(--text-secondary); font-size: 0.875rem;">
+            Max: <strong>{{ data.sets.0.weight }}kg</strong> • 
+            Total Volume: <strong>{% widthratio data.sets|length 1 1 as total %}{% for s in data.sets %}{% if forloop.first %}{% widthratio s.weight 1 s.reps as vol %}{{ vol }}{% endif %}{% endfor %}</strong>
+        </span>
+        <a href="{% url 'exercise_progress' data.exercise.id %}" class="btn btn-ghost btn-sm">View Progress →</a>
+    </div>
 </div>
-{% empty %}
+{% endfor %}
+{% else %}
 <div class="card">
     <div class="empty-state">
         <div class="empty-state-icon">🏋️</div>
         <h3>No exercises logged</h3>
-        <p>Add exercises to this workout</p>
+        <p>Add some exercises to this workout!</p>
         <a href="{% url 'add_exercises' workout.id %}" class="btn btn-primary" style="margin-top: 1rem;">Add Exercises</a>
     </div>
 </div>
-{% endfor %}
+{% endif %}
 
-<div style="margin-top: 1.5rem;">
-    <a href="{% url 'history' %}" class="btn btn-ghost">← Back to History</a>
+<div style="margin-top: 2rem; text-align: center;">
+    <a href="{% url 'history' %}" class="btn btn-secondary">← Back to History</a>
 </div>
 {% endblock %}

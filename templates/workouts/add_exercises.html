@@ -1,12 +1,15 @@
 {% extends 'base.html' %}
 
 {% block title %}Add Exercises - Gym Tracker{% endblock %}
-{% block page_title %}{{ workout.get_day_type_display }} - {{ workout.date|date:"M d, Y" }}{% endblock %}
+{% block page_title %}{{ workout.get_muscle_groups_display }}{% endblock %}
 
 {% block header_actions %}
-<a href="{% url 'workout_detail' workout.id %}" class="btn btn-primary">
-    ✓ Finish Workout
-</a>
+<div style="display: flex; gap: 0.5rem; align-items: center;">
+    <span class="badge badge-primary">{{ workout.date|date:"M d, Y" }}</span>
+    <a href="{% url 'workout_detail' workout.id %}" class="btn btn-primary">
+        ✓ Finish Workout
+    </a>
+</div>
 {% endblock %}
 
 {% block content %}
@@ -14,8 +17,8 @@
 {% if logged_exercises %}
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">Logged Exercises</h2>
-        <span class="badge badge-success">{{ workout.get_total_sets }} sets</span>
+        <h2 class="card-title">✓ Logged Exercises</h2>
+        <span class="badge badge-success">{{ workout.get_total_sets }} sets total</span>
     </div>
     
     {% for name, data in logged_exercises.items %}
@@ -26,11 +29,11 @@
         </div>
         <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
             {% for set in data.sets %}
-            <span style="background: var(--bg-card); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem;">
+            <span class="set-badge">
                 {{ set.weight }}kg × {{ set.reps }}
                 <form method="post" action="{% url 'delete_set' set.id %}" style="display: inline;">
                     {% csrf_token %}
-                    <button type="submit" style="background: none; border: none; color: var(--danger); cursor: pointer; padding: 0 0.25rem;">×</button>
+                    <button type="submit" class="set-delete">×</button>
                 </form>
             </span>
             {% endfor %}
@@ -50,28 +53,39 @@
         {% csrf_token %}
         
         <div class="form-group">
-            <label class="form-label">Select Exercise</label>
-            <select name="exercise" class="form-control" required id="exercise-select">
-                <option value="">Choose an exercise...</option>
-                {% for group, exercises in exercises_by_group.items %}
-                <optgroup label="{{ group }}">
-                    {% for exercise in exercises %}
-                    <option value="{{ exercise.id }}">{{ exercise.name }}</option>
-                    {% endfor %}
-                </optgroup>
-                {% endfor %}
-            </select>
+            <label class="form-label">Search Exercise</label>
+            <div class="autocomplete-wrapper">
+                <input type="text" 
+                       id="exercise-search" 
+                       class="form-control" 
+                       placeholder="Type to search exercises..."
+                       autocomplete="off">
+                <input type="hidden" name="exercise" id="exercise-id">
+                <div class="autocomplete-results" id="autocomplete-results"></div>
+            </div>
+            <div id="selected-exercise" class="selected-exercise" style="display: none;">
+                <span id="selected-name"></span>
+                <span id="selected-group" class="badge badge-primary"></span>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="clearSelection()">×</button>
+            </div>
         </div>
         
+        <!-- Suggestion Box -->
         <div id="suggestion-box" class="hint-box" style="display: none;">
             <span>💡</span>
             <span id="suggestion-text"></span>
         </div>
         
+        <!-- PB Info -->
+        <div id="pb-box" class="pb-hint" style="display: none;">
+            <span>🏆</span>
+            <span id="pb-text"></span>
+        </div>
+        
         <div id="sets-container">
             <div class="form-label" style="margin-bottom: 0.75rem;">Sets</div>
             
-            <div class="set-row" style="font-weight: 500; color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase;">
+            <div class="set-header">
                 <span>Set</span>
                 <span>Weight (kg)</span>
                 <span>Reps</span>
@@ -89,30 +103,124 @@
         </div>
         
         <div style="display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap;">
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="btn btn-primary" id="save-btn" disabled>
                 Save & Add Another
             </button>
-            <button type="submit" name="finish" class="btn btn-secondary">
-                Save & Finish
+            <button type="submit" name="finish" class="btn btn-secondary" id="finish-btn" disabled>
+                Save & Finish Workout
             </button>
         </div>
     </form>
 </div>
 
-<!-- Quick Tip -->
+<!-- Quick Add New Exercise -->
 <div class="card" style="background: var(--bg-main);">
-    <strong>💡 Quick Tips</strong>
-    <ul style="margin: 0.5rem 0 0 1.25rem; color: var(--text-secondary);">
-        <li>Hit 8+ reps? Increase weight by 2.5kg next time</li>
-        <li>Struggling at 5 reps? Keep the same weight</li>
-    </ul>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <strong>Can't find your exercise?</strong>
+            <p style="color: var(--text-secondary); margin: 0.25rem 0 0; font-size: 0.875rem;">Add a new one to your library</p>
+        </div>
+        <a href="{% url 'exercises' %}" class="btn btn-secondary">+ Add New Exercise</a>
+    </div>
 </div>
+
+<style>
+    .set-badge {
+        background: var(--bg-card);
+        padding: 0.375rem 0.625rem;
+        border-radius: var(--radius);
+        font-size: 0.875rem;
+        border: 1px solid var(--border);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+    
+    .set-delete {
+        background: none;
+        border: none;
+        color: var(--danger);
+        cursor: pointer;
+        padding: 0;
+        font-size: 1rem;
+        line-height: 1;
+    }
+    
+    .set-header {
+        display: grid;
+        grid-template-columns: 60px 1fr 1fr 1.5fr 40px;
+        gap: 0.75rem;
+        padding: 0.5rem 0;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .set-row {
+        display: grid;
+        grid-template-columns: 60px 1fr 1fr 1.5fr 40px;
+        gap: 0.75rem;
+        padding: 0.75rem 0;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .pb-hint {
+        background: var(--warning-light);
+        border-radius: var(--radius);
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        color: var(--warning);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .exercise-card {
+        background: var(--bg-main);
+        border-radius: var(--radius);
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .exercise-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+    
+    .exercise-name {
+        font-weight: 600;
+    }
+    
+    .selected-exercise {
+        margin-top: 0.75rem;
+        padding: 0.75rem 1rem;
+        background: var(--accent-light);
+        border-radius: var(--radius);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .selected-exercise #selected-name {
+        font-weight: 600;
+        flex: 1;
+    }
+</style>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
 let setCount = 0;
 let suggestedWeight = null;
+let selectedExerciseId = null;
+const selectedGroups = {{ selected_groups|safe }};
 
 function addSet() {
     setCount++;
@@ -121,7 +229,7 @@ function addSet() {
     const row = document.createElement('div');
     row.className = 'set-row';
     row.innerHTML = `
-        <span class="set-number">Set ${setCount}</span>
+        <span class="set-number" style="font-weight: 600; color: var(--accent);">Set ${setCount}</span>
         <input type="number" name="weight" class="form-control" placeholder="kg" step="0.5" min="0" required ${suggestedWeight && setCount === 1 ? `value="${suggestedWeight}"` : ''}>
         <input type="number" name="reps" class="form-control" placeholder="reps" min="1" required>
         <input type="text" name="set_notes" class="form-control" placeholder="Optional">
@@ -133,48 +241,160 @@ function addSet() {
 
 function removeSet(btn) {
     btn.closest('.set-row').remove();
-    // Renumber sets
     document.querySelectorAll('#sets-list .set-row').forEach((row, i) => {
         row.querySelector('.set-number').textContent = `Set ${i + 1}`;
     });
     setCount--;
 }
 
-// Add initial sets
-for (let i = 0; i < 3; i++) addSet();
+// Autocomplete functionality
+const searchInput = document.getElementById('exercise-search');
+const resultsContainer = document.getElementById('autocomplete-results');
+const exerciseIdInput = document.getElementById('exercise-id');
+let searchTimeout;
+let selectedIndex = -1;
 
-// Fetch suggestion when exercise changes
-document.getElementById('exercise-select').addEventListener('change', async function() {
-    const exerciseId = this.value;
-    const suggestionBox = document.getElementById('suggestion-box');
-    const suggestionText = document.getElementById('suggestion-text');
+searchInput.addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    const query = this.value.trim();
     
-    if (exerciseId) {
-        try {
-            const response = await fetch(`/api/exercise/${exerciseId}/suggestion/`);
-            const data = await response.json();
+    if (query.length < 1) {
+        resultsContainer.classList.remove('show');
+        return;
+    }
+    
+    searchTimeout = setTimeout(async () => {
+        const groups = selectedGroups.join(',');
+        const response = await fetch(`/api/exercises/search/?q=${encodeURIComponent(query)}&groups=${groups}&limit=15`);
+        const data = await response.json();
+        
+        if (data.results.length > 0) {
+            resultsContainer.innerHTML = data.results.map((exercise, i) => `
+                <div class="autocomplete-item" data-id="${exercise.id}" data-name="${exercise.name}" data-group="${exercise.muscle_group_display}">
+                    <span class="autocomplete-item-name">${exercise.name}</span>
+                    <span class="autocomplete-item-group">${exercise.muscle_group_display}</span>
+                </div>
+            `).join('');
+            resultsContainer.classList.add('show');
+            selectedIndex = -1;
             
-            if (data.last_weight) {
-                suggestedWeight = data.suggestion;
-                suggestionBox.style.display = 'flex';
-                suggestionText.textContent = `Last: ${data.last_weight}kg × ${data.last_reps} reps → Try ${data.suggestion}kg`;
-                
-                // Update first weight input if empty
-                const firstWeight = document.querySelector('#sets-list input[name="weight"]');
-                if (firstWeight && !firstWeight.value) {
-                    firstWeight.value = data.suggestion;
-                }
-            } else {
-                suggestionBox.style.display = 'none';
-                suggestedWeight = null;
-            }
-        } catch (e) {
-            suggestionBox.style.display = 'none';
+            // Add click handlers
+            resultsContainer.querySelectorAll('.autocomplete-item').forEach(item => {
+                item.addEventListener('click', () => selectExercise(item));
+            });
+        } else {
+            resultsContainer.innerHTML = '<div class="autocomplete-item"><span style="color: var(--text-secondary);">No exercises found</span></div>';
+            resultsContainer.classList.add('show');
         }
-    } else {
-        suggestionBox.style.display = 'none';
-        suggestedWeight = null;
+    }, 150);
+});
+
+// Keyboard navigation
+searchInput.addEventListener('keydown', function(e) {
+    const items = resultsContainer.querySelectorAll('.autocomplete-item[data-id]');
+    
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+        updateSelection(items);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIndex = Math.max(selectedIndex - 1, 0);
+        updateSelection(items);
+    } else if (e.key === 'Enter' && selectedIndex >= 0) {
+        e.preventDefault();
+        selectExercise(items[selectedIndex]);
+    } else if (e.key === 'Escape') {
+        resultsContainer.classList.remove('show');
     }
 });
+
+function updateSelection(items) {
+    items.forEach((item, i) => {
+        item.classList.toggle('selected', i === selectedIndex);
+    });
+}
+
+function selectExercise(item) {
+    const id = item.dataset.id;
+    const name = item.dataset.name;
+    const group = item.dataset.group;
+    
+    selectedExerciseId = id;
+    exerciseIdInput.value = id;
+    
+    // Show selected exercise
+    document.getElementById('exercise-search').value = '';
+    document.getElementById('selected-exercise').style.display = 'flex';
+    document.getElementById('selected-name').textContent = name;
+    document.getElementById('selected-group').textContent = group;
+    
+    resultsContainer.classList.remove('show');
+    
+    // Enable save buttons
+    document.getElementById('save-btn').disabled = false;
+    document.getElementById('finish-btn').disabled = false;
+    
+    // Fetch suggestion
+    fetchSuggestion(id);
+}
+
+function clearSelection() {
+    selectedExerciseId = null;
+    exerciseIdInput.value = '';
+    document.getElementById('selected-exercise').style.display = 'none';
+    document.getElementById('suggestion-box').style.display = 'none';
+    document.getElementById('pb-box').style.display = 'none';
+    document.getElementById('save-btn').disabled = true;
+    document.getElementById('finish-btn').disabled = true;
+    suggestedWeight = null;
+}
+
+async function fetchSuggestion(exerciseId) {
+    const suggestionBox = document.getElementById('suggestion-box');
+    const suggestionText = document.getElementById('suggestion-text');
+    const pbBox = document.getElementById('pb-box');
+    const pbText = document.getElementById('pb-text');
+    
+    try {
+        const response = await fetch(`/api/exercise/${exerciseId}/suggestion/`);
+        const data = await response.json();
+        
+        if (data.last_weight) {
+            suggestedWeight = data.suggestion;
+            suggestionBox.style.display = 'flex';
+            suggestionText.textContent = `Last workout: ${data.last_weight}kg × ${data.last_reps} reps → Try ${data.suggestion}kg`;
+            
+            // Update first weight input if empty
+            const firstWeight = document.querySelector('#sets-list input[name="weight"]');
+            if (firstWeight && !firstWeight.value) {
+                firstWeight.value = data.suggestion;
+            }
+        } else {
+            suggestionBox.style.display = 'none';
+            suggestedWeight = null;
+        }
+        
+        if (data.pb_weight) {
+            pbBox.style.display = 'flex';
+            pbText.textContent = `Personal best: ${data.pb_weight}kg × ${data.pb_reps} reps`;
+        } else {
+            pbBox.style.display = 'none';
+        }
+    } catch (e) {
+        suggestionBox.style.display = 'none';
+        pbBox.style.display = 'none';
+    }
+}
+
+// Close autocomplete when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.autocomplete-wrapper')) {
+        resultsContainer.classList.remove('show');
+    }
+});
+
+// Add initial sets
+for (let i = 0; i < 3; i++) addSet();
 </script>
 {% endblock %}

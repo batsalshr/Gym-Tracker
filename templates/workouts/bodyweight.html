@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}Body Weight - Gym Tracker{% endblock %}
+{% block page_title %}Body Weight{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="stat-card">
+        <div class="stat-label">Current Weight</div>
+        <div class="stat-value accent">{% if latest %}{{ latest.weight }}{% else %}—{% endif %}</div>
+        <div class="stat-label">{% if latest %}{{ latest.date|date:"M d" }}{% else %}No entries{% endif %}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">30 Day Change</div>
+        <div class="stat-value" style="color: {% if change < 0 %}var(--success){% elif change > 0 %}var(--warning){% else %}var(--text-primary){% endif %}">
+            {% if change %}{{ change|floatformat:1 }}{% else %}—{% endif %}
+        </div>
+        <div class="stat-label">{% if change %}kg{% else %}Not enough data{% endif %}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Entries</div>
+        <div class="stat-value">{{ weights|length }}</div>
+        <div class="stat-label">Last 30 days</div>
+    </div>
+</div>
+
+<!-- Log Weight -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Log Weight</h2>
+    </div>
+    
+    <form method="post" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+        {% csrf_token %}
+        <div class="form-group" style="margin-bottom: 0; width: 150px;">
+            <label class="form-label">Date</label>
+            <input type="date" name="date" class="form-control" value="{{ today }}" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 0; width: 120px;">
+            <label class="form-label">Weight (kg)</label>
+            <input type="number" name="weight" class="form-control" step="0.1" min="0" placeholder="75.5" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 150px;">
+            <label class="form-label">Notes</label>
+            <input type="text" name="notes" class="form-control" placeholder="Morning, after workout, etc.">
+        </div>
+        <button type="submit" class="btn btn-primary">Log Weight</button>
+    </form>
+</div>
+
+{% if chart_data %}
+<!-- Chart -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Weight Trend</h2>
+    </div>
+    <canvas id="weightChart" height="80"></canvas>
+</div>
+{% endif %}
+
+<!-- History -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">History</h2>
+    </div>
+    
+    {% if weights %}
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Weight</th>
+                <th>Notes</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in weights %}
+            <tr>
+                <td>{{ entry.date|date:"M d, Y" }}</td>
+                <td><strong>{{ entry.weight }} kg</strong></td>
+                <td style="color: var(--text-secondary);">{{ entry.notes|default:"—" }}</td>
+                <td>
+                    <form method="post" action="{% url 'delete_bodyweight' entry.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--danger);" onclick="return confirm('Delete this entry?')">×</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">⚖️</div>
+        <h3>No weight entries</h3>
+        <p>Start tracking your weight!</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if chart_data %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const data = {{ chart_data|safe }};
+
+const ctx = document.getElementById('weightChart').getContext('2d');
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: data.map(d => d.date),
+        datasets: [{
+            label: 'Weight (kg)',
+            data: data.map(d => d.weight),
+            borderColor: '#3A86FF',
+            backgroundColor: 'rgba(58, 134, 255, 0.1)',
+            tension: 0.3,
+            fill: true,
+            pointRadius: 4,
+            pointBackgroundColor: '#3A86FF',
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: { beginAtZero: false }
+        }
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

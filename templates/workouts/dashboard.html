@@ -3,132 +3,167 @@
 {% block title %}Dashboard - Gym Tracker{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 
+{% block header_actions %}
+<a href="{% url 'log_workout' %}" class="btn btn-primary">+ Log Workout</a>
+{% endblock %}
+
 {% block content %}
 <!-- Welcome Banner -->
 <div class="welcome-banner">
-    <h2>Welcome back! 💪</h2>
-    <p>Ready to crush your workout today?</p>
+    <h2>💪 Welcome back!</h2>
+    <p>
+        {% if streak > 0 %}
+        🔥 You're on a <strong>{{ streak }} day streak</strong>! Keep it up!
+        {% else %}
+        Ready to crush your workout today?
+        {% endif %}
+    </p>
 </div>
 
-<!-- Stats Grid -->
+<!-- Stats -->
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-label">Last Workout</div>
-        <div class="stat-value">
-            {% if last_workout %}{{ last_workout.date|date:"M d" }}{% else %}—{% endif %}
-        </div>
-        <div class="stat-label">
-            {% if last_workout %}{{ last_workout.get_day_type_display }}{% else %}No workouts yet{% endif %}
-        </div>
+        <div class="stat-value">{% if last_workout %}{{ last_workout.date|date:"M d" }}{% else %}—{% endif %}</div>
     </div>
-    
     <div class="stat-card">
         <div class="stat-label">This Week</div>
         <div class="stat-value accent">{{ this_week }}</div>
-        <div class="stat-label">Sessions completed</div>
     </div>
-    
     <div class="stat-card">
         <div class="stat-label">Weekly Volume</div>
-        <div class="stat-value">{{ weekly_volume|floatformat:0 }}</div>
-        <div class="stat-label">kg lifted</div>
+        <div class="stat-value">{{ weekly_volume|floatformat:0 }}<span style="font-size: 1rem; color: var(--text-secondary);">kg</span></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Total Workouts</div>
+        <div class="stat-value">{{ total_workouts }}</div>
     </div>
 </div>
 
-<!-- Muscle Group Cards -->
-<div style="margin-bottom: 2rem;">
-    <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">Muscle Group Stats (30 Days)</h2>
-    <div class="muscle-group-grid">
-        {% for muscle_group, stats in muscle_group_stats.items %}
-            {% if stats.volume > 0 %}
-            <div class="muscle-group-card {{ stats.code }}">
-                <div class="muscle-group-name">{{ muscle_group }}</div>
-                <div class="muscle-group-stat">
-                    <div class="muscle-group-volume">{{ stats.volume|floatformat:0 }}</div>
-                    <div class="muscle-group-label">kg Total Volume</div>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+    <!-- Left Column -->
+    <div>
+        <!-- Active Goals -->
+        {% if active_goals %}
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">🎯 Active Goals</h2>
+                <a href="{% url 'goals' %}" class="btn btn-ghost btn-sm">View All</a>
+            </div>
+            
+            {% for goal in active_goals %}
+            <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span style="font-weight: 500;">{{ goal.name }}</span>
+                    <span style="font-weight: 600; color: var(--accent);">{{ goal.get_progress_percent }}%</span>
                 </div>
-                <div class="muscle-group-details">
-                    <div class="muscle-group-detail-item">
-                        <div class="muscle-group-detail-value">{{ stats.sets }}</div>
-                        <div class="muscle-group-detail-label">Sets</div>
-                    </div>
-                    <div class="muscle-group-detail-item">
-                        <div class="muscle-group-detail-value">{{ stats.exercise_count }}</div>
-                        <div class="muscle-group-detail-label">Exercises</div>
-                    </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {{ goal.get_progress_percent }}%;"></div>
                 </div>
             </div>
-            {% endif %}
-        {% empty %}
-        <div style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 2rem;">
-            <p>No data yet. Start logging workouts to see muscle group stats!</p>
+            {% endfor %}
         </div>
-        {% endfor %}
-    </div>
-</div>
-
-<!-- Main Grid -->
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-    <!-- Recent Workouts -->
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title">Recent Workouts</h2>
-            <a href="{% url 'history' %}" class="btn btn-ghost btn-sm">View All →</a>
-        </div>
+        {% endif %}
         
-        {% if recent_workouts %}
+        <!-- Body Weight -->
+        {% if latest_weight %}
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">⚖️ Body Weight</h2>
+                <a href="{% url 'bodyweight' %}" class="btn btn-ghost btn-sm">Track</a>
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 0.5rem;">
+                <span style="font-size: 2rem; font-weight: 700; color: var(--accent);">{{ latest_weight.weight }}</span>
+                <span style="color: var(--text-secondary);">kg</span>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.25rem;">{{ latest_weight.date|date:"M d, Y" }}</p>
+        </div>
+        {% endif %}
+        
+        <!-- Recent Workouts -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">📋 Recent Workouts</h2>
+                <a href="{% url 'history' %}" class="btn btn-ghost btn-sm">View All</a>
+            </div>
+            
+            {% if recent_workouts %}
             {% for workout in recent_workouts %}
-            <a href="{% url 'workout_detail' workout.id %}" class="workout-row" style="text-decoration: none; color: inherit;">
+            <a href="{% url 'workout_detail' workout.id %}" class="workout-row">
                 <div class="workout-date">
                     <div class="workout-date-day">{{ workout.date|date:"d" }}</div>
                     <div class="workout-date-month">{{ workout.date|date:"M" }}</div>
                 </div>
                 <div class="workout-info">
-                    <div class="workout-type">{{ workout.get_day_type_display }}</div>
-                    <div class="workout-meta">{{ workout.get_total_sets }} sets • {{ workout.get_total_volume|floatformat:0 }}kg</div>
+                    <div class="workout-type">{{ workout.get_muscle_groups_display }}</div>
+                    <div class="workout-meta">{{ workout.get_total_sets }} sets • {{ workout.get_total_volume|floatformat:0 }}kg volume</div>
                 </div>
+                <span style="color: var(--text-secondary);">→</span>
             </a>
             {% endfor %}
-        {% else %}
+            {% else %}
             <div class="empty-state">
-                <div class="empty-state-icon">🏋️</div>
-                <h3>No workouts yet</h3>
-                <p>Start tracking your fitness journey!</p>
+                <p>No workouts yet</p>
+                <a href="{% url 'log_workout' %}" class="btn btn-primary btn-sm" style="margin-top: 0.5rem;">Log First Workout</a>
             </div>
-        {% endif %}
+            {% endif %}
+        </div>
     </div>
     
-    <!-- Personal Bests -->
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title">Key Personal Bests</h2>
-            <a href="{% url 'personal_bests' %}" class="btn btn-ghost btn-sm">View All →</a>
+    <!-- Right Column -->
+    <div>
+        <!-- Personal Bests -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">🏆 Personal Bests</h2>
+                <a href="{% url 'personal_bests' %}" class="btn btn-ghost btn-sm">View All</a>
+            </div>
+            
+            {% if personal_bests %}
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                {% for pb in personal_bests %}
+                <div class="pb-card">
+                    <div class="pb-exercise">{{ pb.exercise.name }}</div>
+                    <div class="pb-value">{{ pb.weight }}kg</div>
+                    <div class="pb-details">{{ pb.reps }} reps</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state" style="padding: 2rem;">
+                <p>No records yet. Start lifting!</p>
+            </div>
+            {% endif %}
         </div>
         
-        {% if personal_bests %}
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            {% for pb in personal_bests %}
-            <div class="pb-card">
-                <div class="pb-exercise">{{ pb.exercise.name }}</div>
-                <div class="pb-value">{{ pb.weight }} kg</div>
-                <div class="pb-details">for {{ pb.reps }} rep{{ pb.reps|pluralize }}</div>
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">⚡ Quick Actions</h2>
             </div>
-            {% endfor %}
+            <div style="display: grid; gap: 0.75rem;">
+                <a href="{% url 'log_workout' %}" class="btn btn-primary" style="width: 100%;">
+                    ➕ Log Workout
+                </a>
+                <a href="{% url 'bodyweight' %}" class="btn btn-secondary" style="width: 100%;">
+                    ⚖️ Log Body Weight
+                </a>
+                <a href="{% url 'templates' %}" class="btn btn-secondary" style="width: 100%;">
+                    📁 Workout Templates
+                </a>
+                <a href="{% url 'goals' %}" class="btn btn-secondary" style="width: 100%;">
+                    🎯 Set a Goal
+                </a>
+            </div>
         </div>
-        {% else %}
-            <div class="empty-state">
-                <div class="empty-state-icon">🏆</div>
-                <h3>No PRs yet</h3>
-                <p>Complete workouts to track your records!</p>
-            </div>
-        {% endif %}
     </div>
 </div>
 
-<!-- Quick Action -->
-<div style="text-align: center; margin-top: 2rem;">
-    <a href="{% url 'log_workout' %}" class="btn btn-primary btn-lg">
-        + Log New Workout
-    </a>
-</div>
+<style>
+    @media (max-width: 900px) {
+        .content > div[style*="grid-template-columns: 1fr 1fr"] {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
 {% endblock %}

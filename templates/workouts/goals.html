@@ -1,0 +1,437 @@
+{% extends 'base.html' %}
+
+{% block title %}Goals - Gym Tracker{% endblock %}
+{% block page_title %}Goals{% endblock %}
+
+{% block content %}
+<!-- Create Goal -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Set New Goal</h2>
+    </div>
+    
+    <form method="post" id="goal-form">
+        {% csrf_token %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Goal Name</label>
+                <input type="text" name="name" class="form-control" placeholder="e.g., Bench 100kg" required>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Type</label>
+                <select name="goal_type" class="form-control" id="goal-type" required>
+                    {% for value, label in goal_types %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;" id="exercise-group">
+                <label class="form-label">Exercise</label>
+                <div class="autocomplete-wrapper">
+                    <input type="text" 
+                           id="exercise-search" 
+                           class="form-control" 
+                           placeholder="Type to search..."
+                           autocomplete="off">
+                    <input type="hidden" name="exercise" id="exercise-id">
+                    <div class="autocomplete-results" id="autocomplete-results"></div>
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" id="target-label">Target Weight (kg)</label>
+                <input type="number" name="target_value" class="form-control" step="0.5" min="0" placeholder="100" required>
+            </div>
+            <div class="form-group" style="margin-bottom: 0; display: none;" id="reps-group">
+                <label class="form-label">At Reps</label>
+                <input type="number" name="target_reps" class="form-control" min="1" placeholder="5">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Deadline (optional)</label>
+                <input type="date" name="deadline" class="form-control">
+            </div>
+        </div>
+        
+        <!-- Selected Exercise Display -->
+        <div id="selected-exercise" class="selected-exercise" style="display: none; margin-top: 0.75rem;">
+            <span>Selected: </span>
+            <span id="selected-name" style="font-weight: 600;"></span>
+            <span id="selected-group" class="badge badge-primary" style="margin-left: 0.5rem;"></span>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="clearExerciseSelection()" style="margin-left: 0.5rem;">×</button>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">Create Goal</button>
+    </form>
+</div>
+
+<!-- Active Goals -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Active Goals</h2>
+        <span class="badge badge-primary">{{ active_goals|length }} active</span>
+    </div>
+    
+    {% if active_goals %}
+    {% for goal in active_goals %}
+    <div class="goal-card">
+        <div class="goal-header">
+            <div>
+                <h3 class="goal-name">{{ goal.name }}</h3>
+                <span class="goal-meta">
+                    {% if goal.exercise %}{{ goal.exercise.name }} • {% endif %}
+                    {{ goal.get_goal_type_display }}
+                    {% if goal.deadline %} • Due {{ goal.deadline|date:"M d, Y" }}{% endif %}
+                </span>
+            </div>
+            <div class="goal-actions">
+                <form method="post" action="{% url 'update_goal' goal.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-secondary btn-sm">↻ Update</button>
+                </form>
+                <form method="post" action="{% url 'delete_goal' goal.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--danger);" onclick="return confirm('Delete this goal?')">×</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="goal-progress">
+            <div class="progress-info">
+                <span class="progress-current">{{ goal.current_value|floatformat:1 }}</span>
+                <span class="progress-target">/ {{ goal.target_value|floatformat:0 }} {% if goal.goal_type == 'bodyweight' %}kg{% else %}kg{% endif %}</span>
+                {% if goal.target_reps %}
+                <span class="progress-reps">@ {{ goal.target_reps }} reps</span>
+                {% endif %}
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ goal.get_progress_percent }}%;"></div>
+            </div>
+            <span class="progress-percent">{{ goal.get_progress_percent }}%</span>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">🎯</div>
+        <h3>No active goals</h3>
+        <p>Set a goal above to start tracking!</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Achieved Goals -->
+{% if achieved_goals %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">🏆 Achieved Goals</h2>
+    </div>
+    
+    {% for goal in achieved_goals %}
+    <div class="achieved-goal">
+        <span class="achieved-icon">✓</span>
+        <div class="achieved-info">
+            <span class="achieved-name">{{ goal.name }}</span>
+            <span class="achieved-date">{{ goal.achieved_at|date:"M d, Y" }}</span>
+        </div>
+        <span class="badge badge-success">{{ goal.target_value|floatformat:0 }}{% if goal.target_reps %} × {{ goal.target_reps }}{% endif %}</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<style>
+    .goal-card {
+        padding: 1rem 0;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .goal-card:last-child {
+        border-bottom: none;
+    }
+    
+    .goal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+    
+    .goal-name {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0 0 0.25rem;
+    }
+    
+    .goal-meta {
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+    }
+    
+    .goal-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .goal-progress {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .progress-info {
+        min-width: 120px;
+    }
+    
+    .progress-current {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--accent);
+    }
+    
+    .progress-target {
+        color: var(--text-secondary);
+    }
+    
+    .progress-reps {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+    
+    .goal-progress .progress-bar {
+        flex: 1;
+    }
+    
+    .progress-percent {
+        font-weight: 600;
+        color: var(--text-secondary);
+        min-width: 50px;
+        text-align: right;
+    }
+    
+    .achieved-goal {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .achieved-goal:last-child {
+        border-bottom: none;
+    }
+    
+    .achieved-icon {
+        width: 32px;
+        height: 32px;
+        background: var(--success-light);
+        color: var(--success);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+    }
+    
+    .achieved-info {
+        flex: 1;
+    }
+    
+    .achieved-name {
+        font-weight: 500;
+    }
+    
+    .achieved-date {
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+        display: block;
+    }
+    
+    .selected-exercise {
+        padding: 0.75rem 1rem;
+        background: var(--accent-light);
+        border-radius: var(--radius);
+        display: flex;
+        align-items: center;
+    }
+    
+    .autocomplete-wrapper {
+        position: relative;
+    }
+    
+    .autocomplete-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-md);
+        max-height: 250px;
+        overflow-y: auto;
+        z-index: 100;
+        display: none;
+    }
+    
+    .autocomplete-results.show {
+        display: block;
+    }
+    
+    .autocomplete-item {
+        padding: 0.625rem 1rem;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .autocomplete-item:last-child {
+        border-bottom: none;
+    }
+    
+    .autocomplete-item:hover,
+    .autocomplete-item.selected {
+        background: var(--accent-light);
+    }
+    
+    .autocomplete-item-name {
+        font-weight: 500;
+    }
+    
+    .autocomplete-item-group {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const goalType = document.getElementById('goal-type');
+const exerciseGroup = document.getElementById('exercise-group');
+const repsGroup = document.getElementById('reps-group');
+const targetLabel = document.getElementById('target-label');
+const searchInput = document.getElementById('exercise-search');
+const resultsContainer = document.getElementById('autocomplete-results');
+const exerciseIdInput = document.getElementById('exercise-id');
+
+let searchTimeout;
+let selectedIndex = -1;
+
+// Goal type change handler
+goalType.addEventListener('change', function() {
+    const type = this.value;
+    
+    if (type === 'weight' || type === 'reps') {
+        exerciseGroup.style.display = 'block';
+    } else {
+        exerciseGroup.style.display = 'none';
+        clearExerciseSelection();
+    }
+    
+    if (type === 'reps') {
+        repsGroup.style.display = 'block';
+    } else {
+        repsGroup.style.display = 'none';
+    }
+    
+    if (type === 'bodyweight') {
+        targetLabel.textContent = 'Target Weight (kg)';
+    } else if (type === 'volume') {
+        targetLabel.textContent = 'Target Volume (kg)';
+    } else {
+        targetLabel.textContent = 'Target Weight (kg)';
+    }
+});
+
+// Autocomplete functionality
+searchInput.addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    const query = this.value.trim();
+    
+    if (query.length < 1) {
+        resultsContainer.classList.remove('show');
+        return;
+    }
+    
+    searchTimeout = setTimeout(async () => {
+        const response = await fetch(`/api/exercises/search/?q=${encodeURIComponent(query)}&limit=15`);
+        const data = await response.json();
+        
+        if (data.results.length > 0) {
+            resultsContainer.innerHTML = data.results.map((exercise, i) => `
+                <div class="autocomplete-item" data-id="${exercise.id}" data-name="${exercise.name}" data-group="${exercise.muscle_group_display}">
+                    <span class="autocomplete-item-name">${exercise.name}</span>
+                    <span class="autocomplete-item-group">${exercise.muscle_group_display}</span>
+                </div>
+            `).join('');
+            resultsContainer.classList.add('show');
+            selectedIndex = -1;
+            
+            // Add click handlers
+            resultsContainer.querySelectorAll('.autocomplete-item').forEach(item => {
+                item.addEventListener('click', () => selectExercise(item));
+            });
+        } else {
+            resultsContainer.innerHTML = '<div class="autocomplete-item"><span style="color: var(--text-secondary);">No exercises found</span></div>';
+            resultsContainer.classList.add('show');
+        }
+    }, 150);
+});
+
+// Keyboard navigation
+searchInput.addEventListener('keydown', function(e) {
+    const items = resultsContainer.querySelectorAll('.autocomplete-item[data-id]');
+    
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+        updateSelection(items);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIndex = Math.max(selectedIndex - 1, 0);
+        updateSelection(items);
+    } else if (e.key === 'Enter' && selectedIndex >= 0) {
+        e.preventDefault();
+        selectExercise(items[selectedIndex]);
+    } else if (e.key === 'Escape') {
+        resultsContainer.classList.remove('show');
+    }
+});
+
+function updateSelection(items) {
+    items.forEach((item, i) => {
+        item.classList.toggle('selected', i === selectedIndex);
+    });
+}
+
+function selectExercise(item) {
+    const id = item.dataset.id;
+    const name = item.dataset.name;
+    const group = item.dataset.group;
+    
+    exerciseIdInput.value = id;
+    searchInput.value = '';
+    
+    // Show selected exercise
+    document.getElementById('selected-exercise').style.display = 'flex';
+    document.getElementById('selected-name').textContent = name;
+    document.getElementById('selected-group').textContent = group;
+    
+    resultsContainer.classList.remove('show');
+}
+
+function clearExerciseSelection() {
+    exerciseIdInput.value = '';
+    searchInput.value = '';
+    document.getElementById('selected-exercise').style.display = 'none';
+}
+
+// Close autocomplete when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.autocomplete-wrapper')) {
+        resultsContainer.classList.remove('show');
+    }
+});
+</script>
+{% endblock %}
