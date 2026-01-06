@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>{% block title %}Gym Tracker{% endblock %}</title>
+    <title>{% block title %}IronLog{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -962,8 +962,7 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <a href="{% url 'dashboard' %}" class="logo">
-                    <span class="logo-icon">💪</span>
-                    GymTracker
+                    IronLog
                 </a>
             </div>
             
@@ -971,15 +970,12 @@
                 <div class="nav-section">
                     <div class="nav-section-title">Main</div>
                     <a href="{% url 'dashboard' %}" class="nav-item {% if request.path == '/' %}active{% endif %}">
-                        <span class="nav-icon">🏠</span>
                         Dashboard
                     </a>
                     <a href="{% url 'log_workout' %}" class="nav-item {% if 'log' in request.path %}active{% endif %}">
-                        <span class="nav-icon">➕</span>
                         Log Workout
                     </a>
                     <a href="{% url 'history' %}" class="nav-item {% if 'history' in request.path %}active{% endif %}">
-                        <span class="nav-icon">📋</span>
                         History
                     </a>
                 </div>
@@ -987,15 +983,12 @@
                 <div class="nav-section">
                     <div class="nav-section-title">Tracking</div>
                     <a href="{% url 'personal_bests' %}" class="nav-item {% if 'personal-bests' in request.path %}active{% endif %}">
-                        <span class="nav-icon">🏆</span>
                         Personal Bests
                     </a>
                     <a href="{% url 'bodyweight' %}" class="nav-item {% if 'bodyweight' in request.path %}active{% endif %}">
-                        <span class="nav-icon">⚖️</span>
                         Body Weight
                     </a>
                     <a href="{% url 'goals' %}" class="nav-item {% if 'goals' in request.path %}active{% endif %}">
-                        <span class="nav-icon">🎯</span>
                         Goals
                     </a>
                 </div>
@@ -1003,11 +996,9 @@
                 <div class="nav-section">
                     <div class="nav-section-title">Library</div>
                     <a href="{% url 'templates' %}" class="nav-item {% if 'templates' in request.path %}active{% endif %}">
-                        <span class="nav-icon">📁</span>
                         Templates
                     </a>
                     <a href="{% url 'exercises' %}" class="nav-item {% if 'exercises' in request.path %}active{% endif %}">
-                        <span class="nav-icon">🏋️</span>
                         Exercises
                     </a>
                 </div>
