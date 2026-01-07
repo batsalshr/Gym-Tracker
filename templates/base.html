@@ -1,9 +1,16 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>{% block title %}IronLog{% endblock %}</title>
+    <script>
+        // Load theme IMMEDIATELY to prevent flicker
+        (function() {
+            const theme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -121,7 +128,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.25rem;
+            font-size: 1.125rem;
+            font-weight: 800;
+            color: white;
         }
         
         .sidebar-nav {
@@ -155,7 +164,6 @@
             font-weight: 500;
             border-radius: var(--radius);
             transition: all 0.2s;
-            gap: 0.75rem;
         }
         
         .nav-item:hover {
@@ -166,17 +174,6 @@
         .nav-item.active {
             background: var(--accent-light);
             color: var(--accent);
-        }
-        
-        .nav-icon {
-            font-size: 1.25rem;
-            width: 1.5rem;
-            text-align: center;
-            opacity: 0.8;
-        }
-        
-        .nav-item.active .nav-icon {
-            opacity: 1;
         }
         
         .sidebar-footer {
@@ -866,7 +863,8 @@
         }
         
         .bottom-nav-icon {
-            font-size: 1.5rem;
+            width: 22px;
+            height: 22px;
         }
         
         .bottom-nav-fab {
@@ -877,7 +875,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
             color: white;
             text-decoration: none;
             margin-top: -28px;
@@ -962,6 +959,7 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <a href="{% url 'dashboard' %}" class="logo">
+                    <span class="logo-icon">IL</span>
                     IronLog
                 </a>
             </div>
@@ -1030,22 +1028,22 @@
         <nav class="bottom-nav">
             <div class="bottom-nav-items">
                 <a href="{% url 'dashboard' %}" class="bottom-nav-item {% if request.path == '/' %}active{% endif %}">
-                    <span class="bottom-nav-icon">🏠</span>
+                    <svg class="bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
                     Home
                 </a>
                 <a href="{% url 'history' %}" class="bottom-nav-item {% if 'history' in request.path %}active{% endif %}">
-                    <span class="bottom-nav-icon">📋</span>
+                    <svg class="bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     History
                 </a>
                 <a href="{% url 'log_workout' %}" class="bottom-nav-fab">
-                    ➕
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="24" height="24"><path d="M12 5v14M5 12h14"/></svg>
                 </a>
                 <a href="{% url 'personal_bests' %}" class="bottom-nav-item {% if 'personal-bests' in request.path %}active{% endif %}">
-                    <span class="bottom-nav-icon">🏆</span>
+                    <svg class="bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15l-2 5-1.5-4.5L4 16l4-2-4-2 4.5-1.5L7 6l5 4 5-4-1.5 4.5L20 12l-4 2 4 2-4.5-.5L14 20z"/></svg>
                     PRs
                 </a>
                 <a href="{% url 'goals' %}" class="bottom-nav-item {% if 'goals' in request.path %}active{% endif %}">
-                    <span class="bottom-nav-icon">🎯</span>
+                    <svg class="bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
                     Goals
                 </a>
             </div>
@@ -1089,10 +1087,8 @@
             }
         }
         
-        // Load saved theme (default to dark)
-        const savedTheme = localStorage.getItem('theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        updateThemeButton(savedTheme);
+        // Update button on load
+        updateThemeButton(document.documentElement.getAttribute('data-theme') || 'dark');
         
         // Toast auto-hide
         setTimeout(() => {
