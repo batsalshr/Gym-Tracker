@@ -5,47 +5,53 @@ from django.http import JsonResponse
 from django.db.models import Max, Count, Sum, Q
 from django.utils import timezone
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from datetime import timedelta
 import json
 
 from .models import (
     Exercise, Workout, Set, 
-    BodyWeight, WorkoutTemplate, TemplateExercise, Goal
+    BodyWeight, WorkoutTemplate, TemplateExercise, Goal,
+    BodyMeasurement, Achievement
 )
 
 
-class DashboardView(View):
+class DashboardView(LoginRequiredMixin, View):
     """Main dashboard."""
     
     def get(self, request):
-        # Recent workouts
-        recent_workouts = Workout.objects.prefetch_related('sets__exercise')[:5]
+        user = request.user
+        
+        # Recent workouts (user's only)
+        recent_workouts = Workout.objects.filter(user=user).prefetch_related('sets__exercise')[:5]
         
         # Stats
-        total_workouts = Workout.objects.count()
-        total_sets = Set.objects.count()
+        total_workouts = Workout.objects.filter(user=user).count()
+        total_sets = Set.objects.filter(workout__user=user).count()
         
         # This week's workouts
         week_ago = timezone.now().date() - timedelta(days=7)
-        this_week = Workout.objects.filter(date__gte=week_ago).count()
+        this_week = Workout.objects.filter(user=user, date__gte=week_ago).count()
         
         # Weekly volume
         weekly_volume = 0
-        for workout in Workout.objects.filter(date__gte=week_ago):
+        for workout in Workout.objects.filter(user=user, date__gte=week_ago):
             weekly_volume += workout.get_total_volume()
         
         # Last workout info
-        last_workout = Workout.objects.first()
+        last_workout = Workout.objects.filter(user=user).first()
         
         # Personal bests (top 4 by weight)
         personal_bests = []
-        exercises_with_sets = Exercise.objects.annotate(
-            max_weight=Max('sets__weight'),
-            set_count=Count('sets')
+        exercises_with_sets = Exercise.objects.filter(
+            Q(user=user) | Q(user__isnull=True)
+        ).annotate(
+            max_weight=Max('sets__weight', filter=Q(sets__workout__user=user)),
+            set_count=Count('sets', filter=Q(sets__workout__user=user))
         ).filter(set_count__gt=0).order_by('-max_weight')[:4]
         
         for ex in exercises_with_sets:
-            pb = ex.get_personal_best()
+            pb = ex.get_personal_best(user)
             if pb:
                 personal_bests.append({
                     'exercise': ex,
@@ -58,20 +64,20 @@ class DashboardView(View):
         streak = 0
         current_date = timezone.now().date()
         while True:
-            if Workout.objects.filter(date=current_date).exists():
+            if Workout.objects.filter(user=user, date=current_date).exists():
                 streak += 1
                 current_date -= timedelta(days=1)
             else:
                 break
         
         # Active goals
-        active_goals = Goal.objects.filter(status='active')[:3]
+        active_goals = Goal.objects.filter(user=user, status='active')[:3]
         
         # Latest body weight
-        latest_weight = BodyWeight.objects.first()
+        latest_weight = BodyWeight.objects.filter(user=user).first()
         
         # Templates for quick start
-        templates = WorkoutTemplate.objects.all()[:3]
+        templates = WorkoutTemplate.objects.filter(Q(user=user) | Q(user__isnull=True))[:3]
         
         context = {
             'recent_workouts': recent_workouts,
@@ -89,12 +95,14 @@ class DashboardView(View):
         return render(request, 'workouts/dashboard.html', context)
 
 
-class LogWorkoutView(View):
+class LogWorkoutView(LoginRequiredMixin, View):
     """Log a new workout - Step 1: Select muscle groups."""
     
     def get(self, request):
         muscle_groups = Exercise.MUSCLE_GROUPS
-        templates = WorkoutTemplate.objects.all()
+        templates = WorkoutTemplate.objects.filter(
+            Q(user=request.user) | Q(user__isnull=True)
+        )
         context = {
             'muscle_groups': muscle_groups,
             'templates': templates,
@@ -119,6 +127,7 @@ class LogWorkoutView(View):
             return redirect('log_workout')
         
         workout = Workout.objects.create(
+            user=request.user,
             muscle_groups=','.join(selected_groups),
             date=date,
             notes=notes
@@ -127,11 +136,11 @@ class LogWorkoutView(View):
         return redirect('add_exercises', workout_id=workout.id)
 
 
-class AddExercisesView(View):
+class AddExercisesView(LoginRequiredMixin, View):
     """Log workout - Step 2: Add exercises and sets."""
     
     def get(self, request, workout_id):
-        workout = get_object_or_404(Workout, id=workout_id)
+        workout = get_object_or_404(Workout, id=workout_id, user=request.user)
         selected_groups = workout.get_muscle_groups_list()
         
         # Get already logged sets grouped by exercise
@@ -182,7 +191,7 @@ class AddExercisesView(View):
         return redirect('add_exercises', workout_id=workout.id)
 
 
-class WorkoutDetailView(View):
+class WorkoutDetailView(LoginRequiredMixin, View):
     """View workout details."""
     
     def get(self, request, workout_id):
@@ -197,11 +206,12 @@ class WorkoutDetailView(View):
         return render(request, 'workouts/workout_detail.html', context)
 
 
-class HistoryView(View):
+class HistoryView(LoginRequiredMixin, View):
     """Workout history with filters."""
     
     def get(self, request):
-        workouts = Workout.objects.prefetch_related('sets__exercise').all()
+        user = request.user
+        workouts = Workout.objects.filter(user=user).prefetch_related('sets__exercise')
         
         # Filters
         date_from = request.GET.get('date_from')
@@ -250,17 +260,17 @@ class HistoryView(View):
         return render(request, 'workouts/history.html', context)
 
 
-class DeleteWorkoutView(View):
+class DeleteWorkoutView(LoginRequiredMixin, View):
     """Delete a workout."""
     
     def post(self, request, workout_id):
-        workout = get_object_or_404(Workout, id=workout_id)
+        workout = get_object_or_404(Workout, id=workout_id, user=request.user)
         workout.delete()
         messages.success(request, 'Workout deleted.')
         return redirect('history')
 
 
-class DeleteSetView(View):
+class DeleteSetView(LoginRequiredMixin, View):
     """Delete a single set."""
     
     def post(self, request, set_id):
@@ -271,14 +281,20 @@ class DeleteSetView(View):
         return redirect('add_exercises', workout_id=workout_id)
 
 
-class PersonalBestsView(View):
+class PersonalBestsView(LoginRequiredMixin, View):
     """Personal bests page."""
     
     def get(self, request):
+        user = request.user
         sort_by = request.GET.get('sort', 'weight')
         filter_group = request.GET.get('group', '')
         
-        exercises = Exercise.objects.annotate(set_count=Count('sets')).filter(set_count__gt=0)
+        # Get exercises that have sets logged by this user
+        exercises = Exercise.objects.filter(
+            Q(user=user) | Q(user__isnull=True)
+        ).annotate(
+            set_count=Count('sets', filter=Q(sets__workout__user=user))
+        ).filter(set_count__gt=0)
         
         if filter_group:
             exercises = exercises.filter(muscle_group=filter_group)
@@ -286,9 +302,9 @@ class PersonalBestsView(View):
         personal_bests = []
         for exercise in exercises:
             if sort_by == 'reps':
-                pb = exercise.sets.order_by('-reps', '-weight').first()
+                pb = exercise.sets.filter(workout__user=user).order_by('-reps', '-weight').first()
             else:
-                pb = exercise.get_personal_best()
+                pb = exercise.get_personal_best(user)
             
             if pb:
                 personal_bests.append({
@@ -296,7 +312,7 @@ class PersonalBestsView(View):
                     'weight': pb.weight,
                     'reps': pb.reps,
                     'date': pb.workout.date,
-                    'suggestion': exercise.get_suggested_weight()
+                    'suggestion': exercise.get_suggested_weight(user)
                 })
         
         if sort_by == 'reps':
@@ -313,7 +329,7 @@ class PersonalBestsView(View):
         return render(request, 'workouts/personal_bests.html', context)
 
 
-class ExerciseListView(View):
+class ExerciseListView(LoginRequiredMixin, View):
     """Manage exercises."""
     
     def get(self, request):
@@ -355,7 +371,7 @@ class ExerciseListView(View):
         return redirect('exercises')
 
 
-class DeleteExerciseView(View):
+class DeleteExerciseView(LoginRequiredMixin, View):
     """Delete an exercise."""
     
     def post(self, request, exercise_id):
@@ -366,15 +382,16 @@ class DeleteExerciseView(View):
         return redirect('exercises')
 
 
-class ProgressView(View):
+class ProgressView(LoginRequiredMixin, View):
     """Track progress for a specific exercise."""
     
     def get(self, request, exercise_id):
+        user = request.user
         exercise = get_object_or_404(Exercise, id=exercise_id)
         
-        # Get all sets for this exercise, grouped by workout date
+        # Get all sets for this exercise by this user, grouped by workout date
         sets_by_date = {}
-        for s in exercise.sets.select_related('workout').order_by('workout__date'):
+        for s in exercise.sets.filter(workout__user=user).select_related('workout').order_by('workout__date'):
             date = s.workout.date
             if date not in sets_by_date:
                 sets_by_date[date] = {
@@ -404,8 +421,8 @@ class ProgressView(View):
         context = {
             'exercise': exercise,
             'progress_data': progress_data,
-            'pb': exercise.get_personal_best(),
-            'suggestion': exercise.get_suggested_weight(),
+            'pb': exercise.get_personal_best(user),
+            'suggestion': exercise.get_suggested_weight(user),
             'total_volume': total_volume,
         }
         return render(request, 'workouts/progress.html', context)
@@ -413,11 +430,12 @@ class ProgressView(View):
 
 # ============= BODY WEIGHT =============
 
-class BodyWeightView(View):
+class BodyWeightView(LoginRequiredMixin, View):
     """Body weight tracking."""
     
     def get(self, request):
-        weights = BodyWeight.objects.all()[:30]
+        user = request.user
+        weights = BodyWeight.objects.filter(user=user)[:30]
         
         # Chart data
         chart_data = [
@@ -427,7 +445,7 @@ class BodyWeightView(View):
         
         # Stats
         latest = weights.first() if weights else None
-        total_entries = BodyWeight.objects.count()
+        total_entries = BodyWeight.objects.filter(user=user).count()
         
         weight_change = 0
         if weights.count() >= 2:
@@ -445,29 +463,31 @@ class BodyWeightView(View):
         return render(request, 'workouts/bodyweight.html', context)
     
     def post(self, request):
+        user = request.user
         date = request.POST.get('date') or timezone.now().date()
         weight = request.POST.get('weight')
         notes = request.POST.get('notes', '')
         
         if weight:
             BodyWeight.objects.update_or_create(
+                user=user,
                 date=date,
                 defaults={'weight': weight, 'notes': notes}
             )
             messages.success(request, f'Weight recorded: {weight}kg')
             
-            # Update body weight goals
-            for goal in Goal.objects.filter(goal_type='bodyweight', status='active'):
+            # Update body weight goals for this user
+            for goal in Goal.objects.filter(user=user, goal_type='bodyweight', status='active'):
                 goal.update_progress()
         
         return redirect('bodyweight')
 
 
-class DeleteBodyWeightView(View):
+class DeleteBodyWeightView(LoginRequiredMixin, View):
     """Delete a body weight entry."""
     
     def post(self, request, weight_id):
-        weight = get_object_or_404(BodyWeight, id=weight_id)
+        weight = get_object_or_404(BodyWeight, id=weight_id, user=request.user)
         weight.delete()
         messages.success(request, 'Entry deleted.')
         return redirect('bodyweight')
@@ -475,11 +495,14 @@ class DeleteBodyWeightView(View):
 
 # ============= TEMPLATES =============
 
-class TemplatesView(View):
+class TemplatesView(LoginRequiredMixin, View):
     """Workout templates."""
     
     def get(self, request):
-        templates = WorkoutTemplate.objects.prefetch_related('exercises__exercise').all()
+        user = request.user
+        templates = WorkoutTemplate.objects.filter(
+            Q(user=user) | Q(user__isnull=True)
+        ).prefetch_related('exercises__exercise')
         
         context = {
             'templates': templates,
@@ -494,7 +517,8 @@ class TemplatesView(View):
         if name and muscle_groups:
             template = WorkoutTemplate.objects.create(
                 name=name,
-                muscle_groups=','.join(muscle_groups)
+                muscle_groups=','.join(muscle_groups),
+                user=request.user
             )
             messages.success(request, f'Template "{name}" created!')
             return redirect('template_edit', template_id=template.id)
@@ -503,15 +527,23 @@ class TemplatesView(View):
         return redirect('templates')
 
 
-class TemplateEditView(View):
+class TemplateEditView(LoginRequiredMixin, View):
     """Edit a workout template."""
     
     def get(self, request, template_id):
         template = get_object_or_404(WorkoutTemplate, id=template_id)
+        # Check ownership (allow if user owns it or it's a shared template)
+        if template.user and template.user != request.user:
+            messages.error(request, 'Access denied.')
+            return redirect('templates')
+        
         selected_groups = [mg.strip() for mg in template.muscle_groups.split(',')]
         
         # Get exercises for selected groups
-        exercises = Exercise.objects.filter(muscle_group__in=selected_groups)
+        exercises = Exercise.objects.filter(
+            Q(user=request.user) | Q(user__isnull=True),
+            muscle_group__in=selected_groups
+        )
         
         context = {
             'template': template,
@@ -522,6 +554,9 @@ class TemplateEditView(View):
     
     def post(self, request, template_id):
         template = get_object_or_404(WorkoutTemplate, id=template_id)
+        if template.user and template.user != request.user:
+            messages.error(request, 'Access denied.')
+            return redirect('templates')
         
         exercise_id = request.POST.get('exercise')
         target_sets = request.POST.get('target_sets', 3)
@@ -543,7 +578,7 @@ class TemplateEditView(View):
         return redirect('template_edit', template_id=template.id)
 
 
-class DeleteTemplateView(View):
+class DeleteTemplateView(LoginRequiredMixin, View):
     """Delete a template."""
     
     def post(self, request, template_id):
@@ -553,7 +588,7 @@ class DeleteTemplateView(View):
         return redirect('templates')
 
 
-class DeleteTemplateExerciseView(View):
+class DeleteTemplateExerciseView(LoginRequiredMixin, View):
     """Remove exercise from template."""
     
     def post(self, request, exercise_id):
@@ -564,7 +599,7 @@ class DeleteTemplateExerciseView(View):
         return redirect('template_edit', template_id=template_id)
 
 
-class UseTemplateView(View):
+class UseTemplateView(LoginRequiredMixin, View):
     """Start a workout from a template."""
     
     def post(self, request, template_id):
@@ -583,14 +618,15 @@ class UseTemplateView(View):
 
 # ============= GOALS =============
 
-class GoalsView(View):
+class GoalsView(LoginRequiredMixin, View):
     """Goals page."""
     
     def get(self, request):
-        active_goals = Goal.objects.filter(status='active')
-        achieved_goals = Goal.objects.filter(status='achieved')[:10]
+        user = request.user
+        active_goals = Goal.objects.filter(user=user, status='active')
+        achieved_goals = Goal.objects.filter(user=user, status='achieved')[:10]
         
-        exercises = Exercise.objects.all()
+        exercises = Exercise.objects.filter(Q(user=user) | Q(user__isnull=True))
         
         context = {
             'active_goals': active_goals,
@@ -602,15 +638,25 @@ class GoalsView(View):
         return render(request, 'workouts/goals.html', context)
     
     def post(self, request):
+        from decimal import Decimal, InvalidOperation
+        
+        user = request.user
         name = request.POST.get('name')
         goal_type = request.POST.get('goal_type')
         exercise_id = request.POST.get('exercise')
-        target_value = request.POST.get('target_value')
+        target_value_str = request.POST.get('target_value')
         target_reps = request.POST.get('target_reps')
         deadline = request.POST.get('deadline') or None
         
-        if name and goal_type and target_value:
+        if name and goal_type and target_value_str:
+            try:
+                target_value = Decimal(target_value_str)
+            except (InvalidOperation, ValueError):
+                messages.error(request, 'Invalid target value')
+                return redirect('goals')
+            
             goal = Goal.objects.create(
+                user=user,
                 name=name,
                 goal_type=goal_type,
                 exercise_id=exercise_id if exercise_id else None,
@@ -627,21 +673,21 @@ class GoalsView(View):
         return redirect('goals')
 
 
-class UpdateGoalView(View):
+class UpdateGoalView(LoginRequiredMixin, View):
     """Update goal progress."""
     
     def post(self, request, goal_id):
-        goal = get_object_or_404(Goal, id=goal_id)
+        goal = get_object_or_404(Goal, id=goal_id, user=request.user)
         goal.update_progress()
         messages.success(request, f'Goal "{goal.name}" updated!')
         return redirect('goals')
 
 
-class DeleteGoalView(View):
+class DeleteGoalView(LoginRequiredMixin, View):
     """Delete a goal."""
     
     def post(self, request, goal_id):
-        goal = get_object_or_404(Goal, id=goal_id)
+        goal = get_object_or_404(Goal, id=goal_id, user=request.user)
         goal.delete()
         messages.success(request, 'Goal deleted.')
         return redirect('goals')
@@ -649,14 +695,15 @@ class DeleteGoalView(View):
 
 # ============= API VIEWS =============
 
-class ExerciseSuggestionAPI(View):
+class ExerciseSuggestionAPI(LoginRequiredMixin, View):
     """Get weight suggestion for an exercise."""
     
     def get(self, request, exercise_id):
+        user = request.user
         exercise = get_object_or_404(Exercise, id=exercise_id)
-        suggestion = exercise.get_suggested_weight()
-        last = exercise.get_last_workout()
-        pb = exercise.get_personal_best()
+        suggestion = exercise.get_suggested_weight(user)
+        last = exercise.get_last_workout(user)
+        pb = exercise.get_personal_best(user)
         
         data = {
             'suggestion': float(suggestion) if suggestion else None,
@@ -669,7 +716,7 @@ class ExerciseSuggestionAPI(View):
         return JsonResponse(data)
 
 
-class ExerciseSearchAPI(View):
+class ExerciseSearchAPI(LoginRequiredMixin, View):
     """Search exercises for autocomplete."""
     
     def get(self, request):
@@ -703,3 +750,372 @@ class ExerciseSearchAPI(View):
         ]
         
         return JsonResponse({'results': data})
+
+
+# ============= 1RM CALCULATOR =============
+
+class CalculatorView(LoginRequiredMixin, View):
+    """1RM Calculator page."""
+    
+    def get(self, request):
+        return render(request, 'workouts/calculator.html')
+
+
+# ============= BODY MEASUREMENTS =============
+
+class MeasurementsView(LoginRequiredMixin, View):
+    """Body measurements tracking."""
+    
+    def get(self, request):
+        user = request.user
+        measurements = BodyMeasurement.objects.filter(user=user)[:20]
+        latest = measurements.first() if measurements else None
+        
+        # Get previous for comparison
+        previous = measurements[1] if len(measurements) > 1 else None
+        
+        # Chart data for each measurement type
+        chart_fields = ['chest', 'waist', 'left_arm', 'right_arm', 'left_thigh', 'right_thigh']
+        chart_data = {}
+        
+        for field in chart_fields:
+            data = []
+            for m in reversed(list(measurements[:12])):
+                val = getattr(m, field)
+                if val:
+                    data.append({'date': m.date.strftime('%b %d'), 'value': float(val)})
+            if data:
+                chart_data[field] = data
+        
+        context = {
+            'measurements': measurements,
+            'latest': latest,
+            'previous': previous,
+            'chart_data': chart_data,
+            'today': timezone.now().date(),
+        }
+        return render(request, 'workouts/measurements.html', context)
+    
+    def post(self, request):
+        user = request.user
+        date = request.POST.get('date') or timezone.now().date()
+        
+        # Get or create measurement for date and user
+        measurement, created = BodyMeasurement.objects.get_or_create(
+            user=user, 
+            date=date
+        )
+        
+        fields = ['chest', 'waist', 'hips', 'left_arm', 'right_arm', 
+                  'left_thigh', 'right_thigh', 'left_calf', 'right_calf',
+                  'shoulders', 'neck', 'body_fat_percent']
+        
+        for field in fields:
+            value = request.POST.get(field)
+            if value:
+                setattr(measurement, field, value)
+        
+        measurement.notes = request.POST.get('notes', '')
+        measurement.save()
+        
+        # Check achievement
+        if BodyMeasurement.objects.filter(user=user).count() == 1:
+            Achievement.check_and_unlock(user, 'first_measurement')
+        
+        messages.success(request, 'Measurements saved!')
+        return redirect('measurements')
+
+
+class DeleteMeasurementView(LoginRequiredMixin, View):
+    """Delete a measurement entry."""
+    
+    def post(self, request, measurement_id):
+        measurement = get_object_or_404(BodyMeasurement, id=measurement_id, user=request.user)
+        measurement.delete()
+        messages.success(request, 'Measurement deleted.')
+        return redirect('measurements')
+
+
+# ============= CALENDAR =============
+
+class CalendarView(LoginRequiredMixin, View):
+    """Workout calendar view."""
+    
+    def get(self, request):
+        # Get month/year from query params or use current
+        import calendar
+        from datetime import date
+        
+        user = request.user
+        year = int(request.GET.get('year', timezone.now().year))
+        month = int(request.GET.get('month', timezone.now().month))
+        
+        # Get workouts for this month (user's only)
+        workouts = Workout.objects.filter(
+            user=user,
+            date__year=year,
+            date__month=month
+        )
+        
+        # Create workout lookup by date
+        workout_dates = {}
+        for w in workouts:
+            workout_dates[w.date.day] = {
+                'id': w.id,
+                'muscles': w.get_muscle_groups_display(),
+                'sets': w.get_total_sets(),
+                'volume': w.get_total_volume(),
+            }
+        
+        # Calendar data
+        cal = calendar.Calendar(firstweekday=0)  # Monday start
+        weeks = cal.monthdayscalendar(year, month)
+        
+        # Navigation
+        prev_month = month - 1 if month > 1 else 12
+        prev_year = year if month > 1 else year - 1
+        next_month = month + 1 if month < 12 else 1
+        next_year = year if month < 12 else year + 1
+        
+        context = {
+            'year': year,
+            'month': month,
+            'month_name': calendar.month_name[month],
+            'weeks': weeks,
+            'workout_dates': workout_dates,
+            'today': timezone.now().date(),
+            'prev_month': prev_month,
+            'prev_year': prev_year,
+            'next_month': next_month,
+            'next_year': next_year,
+            'total_workouts': workouts.count(),
+            'total_volume': sum(w.get_total_volume() for w in workouts),
+        }
+        return render(request, 'workouts/calendar.html', context)
+
+
+# ============= CHARTS DASHBOARD =============
+
+class ChartsView(LoginRequiredMixin, View):
+    """Charts and analytics dashboard."""
+    
+    def get(self, request):
+        from datetime import timedelta
+        from collections import defaultdict
+        
+        user = request.user
+        today = timezone.now().date()
+        
+        # Volume over last 12 weeks
+        volume_data = []
+        for i in range(11, -1, -1):
+            week_start = today - timedelta(days=today.weekday() + (i * 7))
+            week_end = week_start + timedelta(days=6)
+            
+            workouts = Workout.objects.filter(user=user, date__gte=week_start, date__lte=week_end)
+            total_volume = sum(w.get_total_volume() for w in workouts)
+            
+            volume_data.append({
+                'week': week_start.strftime('%b %d'),
+                'volume': float(total_volume),
+            })
+        
+        # Workouts per week
+        workout_count_data = []
+        for i in range(11, -1, -1):
+            week_start = today - timedelta(days=today.weekday() + (i * 7))
+            week_end = week_start + timedelta(days=6)
+            
+            count = Workout.objects.filter(user=user, date__gte=week_start, date__lte=week_end).count()
+            workout_count_data.append({
+                'week': week_start.strftime('%b %d'),
+                'count': count,
+            })
+        
+        # Muscle group distribution (last 30 days)
+        muscle_distribution = defaultdict(int)
+        recent_workouts = Workout.objects.filter(user=user, date__gte=today - timedelta(days=30))
+        
+        for workout in recent_workouts:
+            for mg in workout.get_muscle_groups_list():
+                muscle_distribution[mg] += 1
+        
+        muscle_data = [
+            {'muscle': dict(Exercise.MUSCLE_GROUPS).get(k, k), 'count': v}
+            for k, v in sorted(muscle_distribution.items(), key=lambda x: -x[1])
+        ]
+        
+        # PR Timeline (last 10 PRs)
+        pr_data = []
+        exercises_with_sets = Exercise.objects.filter(sets__workout__user=user).distinct()
+        
+        for exercise in exercises_with_sets:
+            pb = exercise.get_personal_best(user)
+            if pb:
+                pr_data.append({
+                    'exercise': exercise.name,
+                    'weight': float(pb.weight),
+                    'reps': pb.reps,
+                    'date': pb.workout.date.strftime('%b %d'),
+                })
+        
+        pr_data = sorted(pr_data, key=lambda x: x['weight'], reverse=True)[:10]
+        
+        # Body weight trend
+        bodyweight_data = [
+            {'date': bw.date.strftime('%b %d'), 'weight': float(bw.weight)}
+            for bw in reversed(list(BodyWeight.objects.filter(user=user)[:30]))
+        ]
+        
+        # Stats summary
+        total_workouts = Workout.objects.filter(user=user).count()
+        total_volume = sum(w.get_total_volume() for w in Workout.objects.filter(user=user))
+        total_sets = Set.objects.filter(workout__user=user).count()
+        
+        context = {
+            'volume_data': volume_data,
+            'workout_count_data': workout_count_data,
+            'muscle_data': muscle_data,
+            'pr_data': pr_data,
+            'bodyweight_data': bodyweight_data,
+            'total_workouts': total_workouts,
+            'total_volume': total_volume,
+            'total_sets': total_sets,
+        }
+        return render(request, 'workouts/charts.html', context)
+
+
+# ============= ACHIEVEMENTS =============
+
+class AchievementsView(LoginRequiredMixin, View):
+    """Achievements page."""
+    
+    def get(self, request):
+        user = request.user
+        
+        # Check all achievements for this user
+        self.check_all_achievements(user)
+        
+        # Get all possible achievements
+        all_types = dict(Achievement.ACHIEVEMENT_TYPES)
+        existing_types = set(Achievement.objects.filter(user=user).values_list('achievement_type', flat=True))
+        
+        # Create missing achievements for this user
+        for atype in all_types.keys():
+            if atype not in existing_types:
+                Achievement.objects.create(user=user, achievement_type=atype, unlocked=False)
+        
+        unlocked = Achievement.objects.filter(user=user, unlocked=True).order_by('-unlocked_at')
+        locked = Achievement.objects.filter(user=user, unlocked=False)
+        
+        context = {
+            'unlocked': unlocked,
+            'locked': locked,
+            'total_unlocked': unlocked.count(),
+            'total_achievements': len(all_types),
+        }
+        return render(request, 'workouts/achievements.html', context)
+    
+    def check_all_achievements(self, user):
+        """Check and unlock all earned achievements for user."""
+        from datetime import timedelta
+        
+        workout_count = Workout.objects.filter(user=user).count()
+        total_volume = sum(w.get_total_volume() for w in Workout.objects.filter(user=user))
+        
+        # Workout milestones
+        if workout_count >= 1:
+            Achievement.check_and_unlock(user, 'first_workout')
+        if workout_count >= 10:
+            Achievement.check_and_unlock(user, 'workouts_10')
+        if workout_count >= 50:
+            Achievement.check_and_unlock(user, 'workouts_50')
+        if workout_count >= 100:
+            Achievement.check_and_unlock(user, 'workouts_100')
+        if workout_count >= 500:
+            Achievement.check_and_unlock(user, 'workouts_500')
+        
+        # Volume milestones
+        if total_volume >= 10000:
+            Achievement.check_and_unlock(user, 'volume_10k')
+        if total_volume >= 100000:
+            Achievement.check_and_unlock(user, 'volume_100k')
+        if total_volume >= 1000000:
+            Achievement.check_and_unlock(user, 'volume_1m')
+        
+        # Streak achievements
+        streak = self.calculate_streak(user)
+        if streak >= 7:
+            Achievement.check_and_unlock(user, 'streak_7')
+        if streak >= 30:
+            Achievement.check_and_unlock(user, 'streak_30')
+        if streak >= 100:
+            Achievement.check_and_unlock(user, 'streak_100')
+        
+        # PR achievements
+        pr_count = Exercise.objects.filter(sets__workout__user=user).distinct().count()
+        if pr_count >= 1:
+            Achievement.check_and_unlock(user, 'first_pr')
+        if pr_count >= 10:
+            Achievement.check_and_unlock(user, 'prs_10')
+        if pr_count >= 50:
+            Achievement.check_and_unlock(user, 'prs_50')
+        
+        # Strength milestones
+        self.check_strength_achievements(user)
+        
+        # Body tracking
+        if BodyMeasurement.objects.filter(user=user).exists():
+            Achievement.check_and_unlock(user, 'first_measurement')
+        if BodyWeight.objects.filter(user=user).count() >= 30:
+            Achievement.check_and_unlock(user, 'weight_logged_30')
+    
+    def calculate_streak(self, user):
+        """Calculate current workout streak for user."""
+        from datetime import timedelta
+        
+        today = timezone.now().date()
+        dates = set(Workout.objects.filter(user=user).values_list('date', flat=True))
+        
+        streak = 0
+        check_date = today
+        
+        while check_date in dates or (check_date == today and (today - timedelta(days=1)) in dates):
+            if check_date in dates:
+                streak += 1
+            check_date -= timedelta(days=1)
+        
+        return streak
+    
+    def check_strength_achievements(self, user):
+        """Check strength milestone achievements for user."""
+        try:
+            # Bench Press 100kg
+            bench = Exercise.objects.filter(name__icontains='bench press').first()
+            if bench:
+                pb = bench.get_personal_best(user)
+                if pb and pb.weight >= 100:
+                    Achievement.check_and_unlock(user, 'bench_100')
+            
+            # Squat 140kg
+            squat = Exercise.objects.filter(name__icontains='squat').exclude(name__icontains='split').first()
+            if squat:
+                pb = squat.get_personal_best(user)
+                if pb and pb.weight >= 140:
+                    Achievement.check_and_unlock(user, 'squat_140')
+            
+            # Deadlift 180kg
+            deadlift = Exercise.objects.filter(name__icontains='deadlift').first()
+            if deadlift:
+                pb = deadlift.get_personal_best(user)
+                if pb and pb.weight >= 180:
+                    Achievement.check_and_unlock(user, 'deadlift_180')
+            
+            # OHP 60kg
+            ohp = Exercise.objects.filter(name__icontains='overhead press').first()
+            if ohp:
+                pb = ohp.get_personal_best(user)
+                if pb and pb.weight >= 60:
+                    Achievement.check_and_unlock(user, 'ohp_60')
+        except:
+            pass

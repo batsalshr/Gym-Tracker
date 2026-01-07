@@ -32,6 +32,10 @@ urlpatterns = [
     path('bodyweight/', views.BodyWeightView.as_view(), name='bodyweight'),
     path('bodyweight/<int:weight_id>/delete/', views.DeleteBodyWeightView.as_view(), name='delete_bodyweight'),
     
+    # Body Measurements
+    path('measurements/', views.MeasurementsView.as_view(), name='measurements'),
+    path('measurements/<int:measurement_id>/delete/', views.DeleteMeasurementView.as_view(), name='delete_measurement'),
+    
     # Templates
     path('templates/', views.TemplatesView.as_view(), name='templates'),
     path('templates/<int:template_id>/edit/', views.TemplateEditView.as_view(), name='template_edit'),
@@ -43,6 +47,12 @@ urlpatterns = [
     path('goals/', views.GoalsView.as_view(), name='goals'),
     path('goals/<int:goal_id>/update/', views.UpdateGoalView.as_view(), name='update_goal'),
     path('goals/<int:goal_id>/delete/', views.DeleteGoalView.as_view(), name='delete_goal'),
+    
+    # New Features
+    path('calculator/', views.CalculatorView.as_view(), name='calculator'),
+    path('calendar/', views.CalendarView.as_view(), name='calendar'),
+    path('charts/', views.ChartsView.as_view(), name='charts'),
+    path('achievements/', views.AchievementsView.as_view(), name='achievements'),
     
     # API
     path('api/exercise/<int:exercise_id>/suggestion/', views.ExerciseSuggestionAPI.as_view(), name='api_suggestion'),

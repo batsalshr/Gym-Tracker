@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}Calendar - IronLog{% endblock %}
+{% block page_title %}Workout Calendar{% endblock %}
+
+{% block content %}
+<!-- Month Navigation -->
+<div class="calendar-header">
+    <a href="?year={{ prev_year }}&month={{ prev_month }}" class="btn btn-ghost btn-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    </a>
+    <h2 class="month-title">{{ month_name }} {{ year }}</h2>
+    <a href="?year={{ next_year }}&month={{ next_month }}" class="btn btn-ghost btn-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    </a>
+</div>
+
+<!-- Stats -->
+<div class="month-stats">
+    <div class="month-stat">
+        <span class="stat-num">{{ total_workouts }}</span>
+        <span class="stat-label">workouts</span>
+    </div>
+    <div class="month-stat">
+        <span class="stat-num">{{ total_volume|floatformat:0 }}</span>
+        <span class="stat-label">kg lifted</span>
+    </div>
+</div>
+
+<!-- Calendar -->
+<div class="calendar-grid">
+    <!-- Header -->
+    <div class="cal-header">Mon</div>
+    <div class="cal-header">Tue</div>
+    <div class="cal-header">Wed</div>
+    <div class="cal-header">Thu</div>
+    <div class="cal-header">Fri</div>
+    <div class="cal-header">Sat</div>
+    <div class="cal-header">Sun</div>
+    
+    <!-- Days -->
+    {% for week in weeks %}
+        {% for day in week %}
+        <div class="cal-day {% if day == 0 %}empty{% endif %} {% if day == today.day and month == today.month and year == today.year %}today{% endif %} {% if day in workout_dates %}has-workout{% endif %}">
+            {% if day != 0 %}
+            <span class="day-num">{{ day }}</span>
+            {% if day in workout_dates %}
+            <a href="{% url 'workout_detail' workout_dates|get_item:day|get_item:'id' %}" class="day-workout">
+                <span class="workout-muscles">{{ workout_dates|get_item:day|get_item:'muscles' }}</span>
+                <span class="workout-info">{{ workout_dates|get_item:day|get_item:'sets' }} sets</span>
+            </a>
+            {% endif %}
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% endfor %}
+</div>
+
+<!-- Legend -->
+<div class="calendar-legend">
+    <div class="legend-item">
+        <span class="legend-dot today-dot"></span>
+        Today
+    </div>
+    <div class="legend-item">
+        <span class="legend-dot workout-dot"></span>
+        Workout logged
+    </div>
+</div>
+
+<style>
+    .calendar-header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 2rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .month-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        min-width: 200px;
+        text-align: center;
+    }
+    
+    .month-stats {
+        display: flex;
+        justify-content: center;
+        gap: 3rem;
+        margin-bottom: 2rem;
+    }
+    
+    .month-stat {
+        text-align: center;
+    }
+    
+    .month-stat .stat-num {
+        display: block;
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--accent);
+        line-height: 1;
+    }
+    
+    .month-stat .stat-label {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+    
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1rem;
+    }
+    
+    .cal-header {
+        padding: 0.75rem;
+        text-align: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+    
+    .cal-day {
+        aspect-ratio: 1;
+        min-height: 90px;
+        padding: 0.5rem;
+        background: var(--bg-main);
+        border-radius: var(--radius);
+        display: flex;
+        flex-direction: column;
+        transition: all 0.15s;
+    }
+    
+    .cal-day.empty {
+        background: transparent;
+    }
+    
+    .cal-day.today {
+        background: var(--accent-light);
+        border: 2px solid var(--accent);
+    }
+    
+    .cal-day.has-workout {
+        background: var(--success-light);
+    }
+    
+    .cal-day.today.has-workout {
+        background: linear-gradient(135deg, var(--accent-light), var(--success-light));
+    }
+    
+    .day-num {
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .today .day-num {
+        color: var(--accent);
+    }
+    
+    .day-workout {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .workout-muscles {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        color: var(--success);
+        line-height: 1.2;
+    }
+    
+    .workout-info {
+        font-size: 0.625rem;
+        color: var(--text-muted);
+    }
+    
+    .calendar-legend {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin-top: 1.5rem;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+    }
+    
+    .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+    }
+    
+    .today-dot {
+        background: var(--accent-light);
+        border: 2px solid var(--accent);
+    }
+    
+    .workout-dot {
+        background: var(--success-light);
+    }
+    
+    @media (max-width: 768px) {
+        .cal-day {
+            min-height: 60px;
+            aspect-ratio: auto;
+        }
+        
+        .workout-muscles {
+            font-size: 0.5rem;
+        }
+        
+        .workout-info {
+            display: none;
+        }
+    }
+</style>
+{% endblock %}

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Add Exercises - Gym Tracker{% endblock %}
+{% block title %}Add Exercises - IronLog{% endblock %}
 {% block page_title %}{{ workout.get_muscle_groups_display }}{% endblock %}
 
 {% block header_actions %}
@@ -57,6 +57,7 @@
             <div class="selected-exercise">
                 <div class="selected-exercise-name" id="selected-name"></div>
                 <span class="badge badge-primary" id="selected-group"></span>
+                <span class="badge badge-dumbbell" id="dumbbell-indicator" style="display: none;">🏋️ Dumbbell (weight ×2)</span>
                 <button type="button" class="btn btn-ghost btn-sm" onclick="clearSelection()">✕ Change</button>
             </div>
             
@@ -69,6 +70,10 @@
                 <div id="pb-info" class="hint-card pr" style="display: none;">
                     <span class="hint-icon">🏆</span>
                     <span class="hint-text" id="pb-text"></span>
+                </div>
+                <div id="dumbbell-hint" class="hint-card info" style="display: none;">
+                    <span class="hint-icon">ℹ️</span>
+                    <span class="hint-text">Enter weight per dumbbell – total volume calculated as ×2</span>
                 </div>
             </div>
             
@@ -209,6 +214,27 @@
     
     .hint-card.pr {
         background: var(--pr-gold-light);
+    }
+    
+    .hint-card.info {
+        background: var(--accent-light);
+    }
+    
+    .badge-dumbbell {
+        background: var(--accent-light);
+        color: var(--accent);
+        padding: 0.375rem 0.625rem;
+        font-size: 0.75rem;
+    }
+    
+    .equipment-tag {
+        display: inline-block;
+        font-size: 0.625rem;
+        color: var(--text-muted);
+        background: var(--bg-card);
+        padding: 0.125rem 0.375rem;
+        border-radius: 4px;
+        margin-left: 0.375rem;
     }
     
     .hint-icon {
@@ -442,10 +468,12 @@ searchInput.addEventListener('input', function() {
             for (const [group, exercises] of Object.entries(grouped)) {
                 html += `<div class="autocomplete-group">${group}</div>`;
                 exercises.forEach(ex => {
+                    const isDumbbell = ex.equipment && ex.equipment.toLowerCase() === 'dumbbell';
                     html += `
-                        <div class="autocomplete-item" data-id="${ex.id}" data-name="${ex.name}" data-group="${ex.muscle_group_display}">
+                        <div class="autocomplete-item" data-id="${ex.id}" data-name="${ex.name}" data-group="${ex.muscle_group_display}" data-equipment="${ex.equipment || ''}">
                             <div>
                                 <div class="autocomplete-item-name">${ex.name}</div>
+                                ${isDumbbell ? '<span class="equipment-tag">Dumbbell</span>' : ''}
                             </div>
                         </div>
                     `;
@@ -500,6 +528,8 @@ async function selectExercise(item) {
     const id = item.dataset.id;
     const name = item.dataset.name;
     const group = item.dataset.group;
+    const equipment = item.dataset.equipment || '';
+    const isDumbbell = equipment.toLowerCase() === 'dumbbell';
     
     selectedExerciseId = id;
     exerciseIdInput.value = id;
@@ -509,6 +539,10 @@ async function selectExercise(item) {
     document.getElementById('selected-exercise-info').style.display = 'block';
     document.getElementById('selected-name').textContent = name;
     document.getElementById('selected-group').textContent = group;
+    
+    // Show dumbbell indicator if applicable
+    document.getElementById('dumbbell-indicator').style.display = isDumbbell ? 'inline-block' : 'none';
+    document.getElementById('dumbbell-hint').style.display = isDumbbell ? 'flex' : 'none';
     
     resultsContainer.classList.remove('show');
     
@@ -531,6 +565,8 @@ function clearSelection() {
     document.getElementById('selected-exercise-info').style.display = 'none';
     document.getElementById('last-performance').style.display = 'none';
     document.getElementById('pb-info').style.display = 'none';
+    document.getElementById('dumbbell-indicator').style.display = 'none';
+    document.getElementById('dumbbell-hint').style.display = 'none';
     
     // Clear sets
     document.getElementById('sets-container').innerHTML = '';

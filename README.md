@@ -1,8 +1,8 @@
-# Gym Tracker
+# 🏋️ Gym Tracker
 
 A comprehensive Django-based workout tracking application with a beautiful, modern UI that supports dark mode.
 
-## Features
+## ✨ Features
 
 ### Core Features
 - **Multi-select Muscle Groups**: Select multiple muscle groups per workout (e.g., Chest + Triceps)
@@ -12,11 +12,11 @@ A comprehensive Django-based workout tracking application with a beautiful, mode
 - **Personal Bests**: Track your PRs with automatic detection
 
 ### New Features
-- **Dark Mode**: Toggle between light and dark themes
-- **Workout Templates**: Save and reuse your favorite workout routines
-- **Body Weight Tracking**: Track your weight over time with charts
-- **Goals**: Set and track strength goals with progress bars (with autocomplete!)
-- **Advanced History Filters**: Filter by date, muscle group, sets, and volume
+- **🌙 Dark Mode**: Toggle between light and dark themes
+- **📁 Workout Templates**: Save and reuse your favorite workout routines
+- **⚖️ Body Weight Tracking**: Track your weight over time with charts
+- **🎯 Goals**: Set and track strength goals with progress bars (with autocomplete!)
+- **🔍 Advanced History Filters**: Filter by date, muscle group, sets, and volume
 
 ### Exercise Database (336 Exercises)
 | Muscle Group | Count |
@@ -34,7 +34,7 @@ A comprehensive Django-based workout tracking application with a beautiful, mode
 | Calves | 8 |
 | Traps | 8 |
 
-## Quick Start
+## 🚀 Quick Start
 
 ### 1. Install Dependencies
 
@@ -68,7 +68,7 @@ python manage.py runserver
 
 Visit: http://127.0.0.1:8000
 
-## Pages
+## 📱 Pages
 
 | Page | URL | Description |
 |------|-----|-------------|
@@ -81,18 +81,18 @@ Visit: http://127.0.0.1:8000
 | Goals | `/goals/` | Set and track goals |
 | Exercises | `/exercises/` | Browse and add exercises |
 
-## Dark Mode
+## 🎨 Dark Mode
 
 Click the theme toggle button in the sidebar (🌙/☀️) to switch between light and dark modes. Your preference is saved automatically.
 
-## Workout Flow
+## 📝 Workout Flow
 
 1. **Select Muscle Groups**: Choose one or more muscle groups, or use a saved template
 2. **Add Exercises**: Type to search exercises with autocomplete, get weight suggestions
 3. **Log Sets**: Enter weight and reps for each set
 4. **Finish**: View your workout summary
 
-## Goals
+## 🎯 Goals
 
 Create goals with autocomplete exercise search:
 - **Lift Weight**: Hit a target weight on an exercise (e.g., "Bench 100kg")
@@ -100,7 +100,7 @@ Create goals with autocomplete exercise search:
 - **Body Weight**: Reach a target body weight
 - **Weekly Volume**: Hit a target weekly volume
 
-## Customization
+## 🔧 Customization
 
 ### Adding Custom Exercises
 
@@ -115,7 +115,7 @@ Create goals with autocomplete exercise search:
 3. Edit to add specific exercises with target sets/reps
 4. Use the template from the Log Workout page
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 gym_tracker/
@@ -132,7 +132,7 @@ gym_tracker/
 └── manage.py
 ```
 
-## Starting Fresh
+## 🔄 Starting Fresh
 
 To reset the database:
 
@@ -143,7 +143,7 @@ python load_exercises.py
 python demo_data.py  # Optional
 ```
 
-## Tips
+## 💡 Tips
 
 - **Quick Presets**: Use preset buttons on Log Workout page (Push, Pull, Legs, etc.)
 - **Exercise Priority**: Search prioritizes exercises matching your selected muscle groups
@@ -151,7 +151,7 @@ python demo_data.py  # Optional
 - **Auto-Update Goals**: Goals update automatically when you log relevant workouts
 - **Keyboard Navigation**: Use arrow keys and Enter in autocomplete dropdowns
 
-## Theme Colors
+## 🎨 Theme Colors
 
 ### Light Mode
 - Background: #F0F2F5
@@ -163,3 +163,6 @@ python demo_data.py  # Optional
 - Cards: #16213E
 - Accent: #4F9CFF
 
+---
+
+Built with Django 🐍 and ❤️

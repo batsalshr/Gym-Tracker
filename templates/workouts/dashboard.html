@@ -4,324 +4,509 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<div class="hero-row">
-    <a href="{% url 'log_workout' %}" class="hero-card">
-        <div class="hero-content">
-            <div class="hero-icon">🏋️</div>
-            <div class="hero-text">
-                <h2>Start Workout</h2>
-                <p>Log your session</p>
-            </div>
+<!-- Quick Actions -->
+<div class="quick-actions">
+    <a href="{% url 'log_workout' %}" class="action-card primary">
+        <div class="action-icon">💪</div>
+        <div class="action-content">
+            <span class="action-title">Start Workout</span>
+            <span class="action-sub">Log your session</span>
         </div>
-        <button class="btn btn-primary">+ Start Workout</button>
+        <svg class="action-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </a>
     
-    <a href="{% url 'bodyweight' %}" class="side-card">
-        <div class="side-icon">⚖️</div>
-        <div class="side-content">
-            <span class="side-title">Log Weight</span>
-            <span class="side-value">{% if latest_weight %}{{ latest_weight.weight }}kg{% else %}--{% endif %}</span>
+    <a href="{% url 'calendar' %}" class="action-card">
+        <div class="action-icon">📅</div>
+        <div class="action-content">
+            <span class="action-title">Calendar</span>
+            <span class="action-sub">{{ this_week }} this week</span>
         </div>
-        <span class="side-arrow">→</span>
+    </a>
+    
+    <a href="{% url 'charts' %}" class="action-card">
+        <div class="action-icon">📊</div>
+        <div class="action-content">
+            <span class="action-title">Analytics</span>
+            <span class="action-sub">View progress</span>
+        </div>
     </a>
 </div>
 
-<!-- Stats Row -->
-<div class="grid-4 mb-2">
-    <div class="stat-card">
-        <div class="stat-icon blue">📅</div>
-        <a href="{% url 'history' %}" class="stat-label">This Week</a>
-        <div class="stat-value font-mono">{{ this_week }}</div>
-        <div class="stat-sub">workouts</div>
+<!-- Stats Overview -->
+<div class="stats-grid">
+    <div class="stat-box">
+        <div class="stat-header">
+            <span class="stat-icon blue">🔥</span>
+            <span class="stat-label">Streak</span>
+        </div>
+        <div class="stat-number">{{ streak }}</div>
+        <div class="stat-desc">{% if streak > 0 %}days{% else %}Start today!{% endif %}</div>
     </div>
     
-    <div class="stat-card">
-        <div class="stat-icon orange">🔥</div>
-        <span class="stat-label">Current Streak</span>
-        <div class="stat-value font-mono" style="color: var(--warning);">{{ streak }}</div>
-        <div class="stat-sub">{% if streak > 0 %}days strong{% else %}Start today{% endif %}</div>
+    <div class="stat-box">
+        <div class="stat-header">
+            <span class="stat-icon green">📈</span>
+            <span class="stat-label">Weekly Volume</span>
+        </div>
+        <div class="stat-number">{{ weekly_volume|floatformat:0 }}</div>
+        <div class="stat-desc">kg lifted</div>
     </div>
     
-    <div class="stat-card">
-        <div class="stat-icon green">📊</div>
-        <a href="{% url 'history' %}" class="stat-label">Weekly Volume</a>
-        <div class="stat-value font-mono" style="color: var(--success);">{{ weekly_volume|floatformat:0 }}</div>
-        <div class="stat-sub">kg lifted</div>
+    <div class="stat-box">
+        <div class="stat-header">
+            <span class="stat-icon gold">🏆</span>
+            <span class="stat-label">PRs</span>
+        </div>
+        <div class="stat-number">{{ personal_bests|length }}</div>
+        <div class="stat-desc">personal records</div>
     </div>
     
-    <div class="stat-card">
-        <div class="stat-icon gold">🏆</div>
-        <a href="{% url 'personal_bests' %}" class="stat-label">Total PRs</a>
-        <div class="stat-value font-mono" style="color: var(--gold);">{{ personal_bests|length }}</div>
-        <div class="stat-sub">personal records</div>
+    <div class="stat-box">
+        <div class="stat-header">
+            <span class="stat-icon purple">⚖️</span>
+            <span class="stat-label">Body Weight</span>
+        </div>
+        <div class="stat-number">{% if latest_weight %}{{ latest_weight.weight }}{% else %}--{% endif %}</div>
+        <div class="stat-desc">{% if latest_weight %}kg{% else %}<a href="{% url 'bodyweight' %}">Log weight</a>{% endif %}</div>
     </div>
 </div>
 
-<!-- Main Grid -->
-<div class="dashboard-grid">
+<!-- Main Content -->
+<div class="main-grid">
     <!-- Recent Workouts -->
-    <div class="dashboard-main">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">📋 Recent Workouts</h3>
-                <a href="{% url 'history' %}" class="card-link">View All →</a>
-            </div>
-            
-            {% if recent_workouts %}
-            {% for workout in recent_workouts %}
-            <div class="workout-item">
-                <div class="workout-date">
-                    <div class="workout-date-day">{{ workout.date|date:"d" }}</div>
-                    <div class="workout-date-month">{{ workout.date|date:"M" }}</div>
-                </div>
-                <div class="workout-info">
-                    <div class="workout-title">{{ workout.get_muscle_groups_display }}</div>
-                    <div class="workout-exercises">
-                        {% for name, data in workout.get_exercises_summary.items %}{{ name }}{% if not forloop.last %} • {% endif %}{% empty %}No exercises{% endfor %}
-                    </div>
-                    <div class="workout-meta">
-                        <span><strong>{{ workout.get_total_sets }}</strong> sets</span>
-                        <span><strong>{{ workout.get_total_volume|floatformat:0 }}</strong> kg</span>
-                    </div>
-                </div>
-                <div class="workout-actions">
-                    <a href="{% url 'workout_detail' workout.id %}" class="btn btn-ghost btn-icon" title="View">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </a>
-                    <form method="post" action="{% url 'delete_workout' workout.id %}" style="display:inline;">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-ghost btn-icon" onclick="return confirm('Delete?')" title="Delete">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        </button>
-                    </form>
-                </div>
-            </div>
-            {% endfor %}
-            {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">🏋️</div>
-                <h3>No workouts yet</h3>
-                <p>Start your fitness journey today!</p>
-                <a href="{% url 'log_workout' %}" class="btn btn-primary">Log First Workout</a>
-            </div>
-            {% endif %}
+    <div class="content-card">
+        <div class="card-header">
+            <h3>Recent Workouts</h3>
+            <a href="{% url 'history' %}" class="link-btn">View all</a>
         </div>
+        
+        {% if recent_workouts %}
+        <div class="workout-list">
+            {% for workout in recent_workouts %}
+            <a href="{% url 'workout_detail' workout.id %}" class="workout-row">
+                <div class="workout-date-box">
+                    <span class="day">{{ workout.date|date:"d" }}</span>
+                    <span class="month">{{ workout.date|date:"M" }}</span>
+                </div>
+                <div class="workout-details">
+                    <span class="workout-name">{{ workout.get_muscle_groups_display }}</span>
+                    <span class="workout-exercises">
+                        {% for name, data in workout.get_exercises_summary.items %}{{ name }}{% if not forloop.last %} · {% endif %}{% empty %}No exercises{% endfor %}
+                    </span>
+                </div>
+                <div class="workout-stats">
+                    <span class="sets">{{ workout.get_total_sets }} sets</span>
+                    <span class="volume">{{ workout.get_total_volume|floatformat:0 }} kg</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state-mini">
+            <span class="empty-icon">🏋️</span>
+            <p>No workouts yet</p>
+            <a href="{% url 'log_workout' %}" class="btn btn-primary btn-sm">Start First Workout</a>
+        </div>
+        {% endif %}
     </div>
     
     <!-- Sidebar -->
-    <div class="dashboard-side">
+    <div class="sidebar-cards">
         <!-- Top PRs -->
-        <div class="card mb-2">
+        <div class="content-card">
             <div class="card-header">
-                <h3 class="card-title">🏆 Top PRs</h3>
-                <a href="{% url 'personal_bests' %}" class="card-link">All →</a>
+                <h3>Top PRs</h3>
+                <a href="{% url 'personal_bests' %}" class="link-btn">All</a>
             </div>
             
             {% if personal_bests %}
-            {% for pb in personal_bests %}
-            <div class="pr-item">
-                <div class="pr-info">
-                    <div class="pr-name">{{ pb.exercise.name }}</div>
-                    <div class="pr-group">{{ pb.exercise.get_muscle_group_display }}</div>
+            <div class="pr-list">
+                {% for pb in personal_bests %}
+                <div class="pr-row">
+                    <div class="pr-details">
+                        <span class="pr-name">{{ pb.exercise.name }}</span>
+                        <span class="pr-muscle">{{ pb.exercise.get_muscle_group_display }}</span>
+                    </div>
+                    <div class="pr-weight">
+                        <span class="weight">{{ pb.weight }}</span>
+                        <span class="unit">kg</span>
+                        <span class="reps">×{{ pb.reps }}</span>
+                    </div>
                 </div>
-                <div class="pr-value">
-                    {{ pb.weight }}kg <small>× {{ pb.reps }}</small>
-                </div>
-            </div>
-            {% endfor %}
-            {% else %}
-            <p class="text-muted" style="padding: 1rem 0; text-align: center;">Complete workouts to track PRs</p>
-            {% endif %}
-        </div>
-        
-        <!-- Body Weight -->
-        <div class="card mb-2">
-            <div class="card-header">
-                <h3 class="card-title">⚖️ Body Weight</h3>
-                <a href="{% url 'bodyweight' %}" class="card-link">Log →</a>
-            </div>
-            
-            {% if latest_weight %}
-            <div class="bodyweight-display">
-                <span class="bw-value">{{ latest_weight.weight }}</span>
-                <span class="bw-unit">kg</span>
+                {% endfor %}
             </div>
             {% else %}
-            <a href="{% url 'bodyweight' %}" class="empty-weight">
-                <span>Tap to log your weight</span>
-            </a>
+            <p class="empty-text">Complete workouts to track PRs</p>
             {% endif %}
         </div>
         
         <!-- Active Goals -->
-        {% if active_goals %}
-        <div class="card">
+        <div class="content-card">
             <div class="card-header">
-                <h3 class="card-title">🎯 Goals</h3>
-                <a href="{% url 'goals' %}" class="card-link">All →</a>
+                <h3>Goals</h3>
+                <a href="{% url 'goals' %}" class="link-btn">All</a>
             </div>
             
-            {% for goal in active_goals %}
-            <div class="goal-item">
-                <div class="goal-info">
-                    <span class="goal-name">{{ goal.name }}</span>
-                    <span class="goal-progress-text">{{ goal.get_progress_percent }}%</span>
+            {% if active_goals %}
+            <div class="goals-list">
+                {% for goal in active_goals %}
+                <div class="goal-row">
+                    <div class="goal-header">
+                        <span class="goal-name">{{ goal.name }}</span>
+                        <span class="goal-percent">{{ goal.get_progress_percent }}%</span>
+                    </div>
+                    <div class="goal-bar">
+                        <div class="goal-fill" style="width: {{ goal.get_progress_percent }}%;"></div>
+                    </div>
                 </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: {{ goal.get_progress_percent }}%;"></div>
-                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
+            {% else %}
+            <div class="empty-text">
+                <a href="{% url 'goals' %}">Set your first goal →</a>
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
     </div>
 </div>
 
 <style>
-    .hero-row {
+    /* Quick Actions */
+    .quick-actions {
         display: grid;
-        grid-template-columns: 2fr 1fr;
+        grid-template-columns: 2fr 1fr 1fr;
         gap: 1rem;
         margin-bottom: 1.5rem;
     }
     
-    .hero-card {
-        background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 50%, #1e3a5f 100%);
-        border-radius: var(--radius-xl);
-        padding: 1.5rem 2rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        text-decoration: none;
-        color: white;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .hero-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 40%;
-        height: 100%;
-        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='80' cy='50' r='40' fill='rgba(255,255,255,0.05)'/%3E%3C/svg%3E") no-repeat right center;
-        background-size: contain;
-    }
-    
-    .hero-content {
+    .action-card {
         display: flex;
         align-items: center;
         gap: 1rem;
-    }
-    
-    .hero-icon {
-        font-size: 2.5rem;
-    }
-    
-    .hero-text h2 {
-        font-size: 1.25rem;
-        font-weight: 700;
-        margin-bottom: 0.125rem;
-    }
-    
-    .hero-text p {
-        font-size: 0.875rem;
-        opacity: 0.8;
-    }
-    
-    .side-card {
+        padding: 1.25rem;
         background: var(--bg-card);
         border: 1px solid var(--border);
-        border-radius: var(--radius-xl);
-        padding: 1.25rem 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
+        border-radius: var(--radius-lg);
         text-decoration: none;
         color: var(--text-primary);
-        transition: all 0.15s;
+        transition: all 0.2s;
     }
     
-    .side-card:hover {
+    .action-card:hover {
         border-color: var(--accent);
+        transform: translateY(-2px);
     }
     
-    .side-icon {
+    .action-card.primary {
+        background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+        border-color: transparent;
+        color: white;
+    }
+    
+    .action-card.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+    }
+    
+    .action-icon {
         font-size: 1.75rem;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255,255,255,0.1);
+        border-radius: var(--radius);
     }
     
-    .side-content {
+    .action-card:not(.primary) .action-icon {
+        background: var(--bg-main);
+    }
+    
+    .action-content {
         flex: 1;
     }
     
-    .side-title {
+    .action-title {
         display: block;
-        font-size: 0.875rem;
-        color: var(--text-secondary);
+        font-weight: 600;
+        font-size: 1rem;
     }
     
-    .side-value {
-        font-size: 1.25rem;
+    .action-sub {
+        font-size: 0.8125rem;
+        opacity: 0.7;
+    }
+    
+    .action-arrow {
+        opacity: 0.7;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stat-box {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+    }
+    
+    .stat-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .stat-icon {
+        font-size: 1rem;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+    }
+    
+    .stat-icon.blue { background: rgba(59, 130, 246, 0.15); }
+    .stat-icon.green { background: rgba(16, 185, 129, 0.15); }
+    .stat-icon.gold { background: rgba(251, 191, 36, 0.15); }
+    .stat-icon.purple { background: rgba(139, 92, 246, 0.15); }
+    
+    .stat-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
         font-weight: 700;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+        font-variant-numeric: tabular-nums;
     }
     
-    .side-arrow {
+    .stat-desc {
+        font-size: 0.75rem;
         color: var(--text-muted);
     }
     
-    .dashboard-grid {
+    .stat-desc a {
+        color: var(--accent);
+        text-decoration: none;
+    }
+    
+    /* Main Grid */
+    .main-grid {
         display: grid;
-        grid-template-columns: 1fr 340px;
+        grid-template-columns: 1fr 360px;
         gap: 1.5rem;
     }
     
-    .bodyweight-display {
+    .content-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+    }
+    
+    .card-header {
         display: flex;
-        align-items: baseline;
-        justify-content: center;
-        padding: 1rem 0;
-        gap: 0.25rem;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border);
     }
     
-    .bw-value {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: var(--accent);
+    .card-header h3 {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        margin: 0;
     }
     
-    .bw-unit {
-        font-size: 1rem;
-        color: var(--text-muted);
-    }
-    
-    .empty-weight {
-        display: block;
-        text-align: center;
-        padding: 1.5rem;
+    .link-btn {
+        font-size: 0.8125rem;
         color: var(--text-muted);
         text-decoration: none;
     }
     
-    .empty-weight:hover {
+    .link-btn:hover {
         color: var(--accent);
     }
     
-    .goal-item {
+    /* Workout List */
+    .workout-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .workout-row {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.875rem;
+        background: var(--bg-main);
+        border-radius: var(--radius);
+        text-decoration: none;
+        color: var(--text-primary);
+        transition: background 0.15s;
+    }
+    
+    .workout-row:hover {
+        background: var(--bg-card-hover);
+    }
+    
+    .workout-date-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 44px;
+        padding: 0.5rem;
+        background: var(--accent);
+        border-radius: 8px;
+        color: white;
+    }
+    
+    .workout-date-box .day {
+        font-size: 1.125rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    
+    .workout-date-box .month {
+        font-size: 0.625rem;
+        text-transform: uppercase;
+        opacity: 0.9;
+    }
+    
+    .workout-details {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .workout-name {
+        display: block;
+        font-weight: 600;
+        font-size: 0.9375rem;
+        margin-bottom: 0.125rem;
+    }
+    
+    .workout-exercises {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .workout-stats {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.125rem;
+        font-size: 0.8125rem;
+    }
+    
+    .workout-stats .sets {
+        font-weight: 600;
+    }
+    
+    .workout-stats .volume {
+        color: var(--text-muted);
+    }
+    
+    /* Sidebar */
+    .sidebar-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    /* PR List */
+    .pr-list {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .pr-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         padding: 0.75rem 0;
         border-bottom: 1px solid var(--border);
     }
     
-    .goal-item:last-child {
+    .pr-row:last-child {
         border-bottom: none;
     }
     
-    .goal-info {
+    .pr-details {
+        min-width: 0;
+    }
+    
+    .pr-name {
+        display: block;
+        font-weight: 500;
+        font-size: 0.875rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .pr-muscle {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .pr-weight {
+        text-align: right;
+        white-space: nowrap;
+    }
+    
+    .pr-weight .weight {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--gold);
+    }
+    
+    .pr-weight .unit {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .pr-weight .reps {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-left: 0.25rem;
+    }
+    
+    /* Goals */
+    .goals-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.875rem;
+    }
+    
+    .goal-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .goal-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 0.5rem;
     }
     
     .goal-name {
@@ -329,19 +514,77 @@
         font-weight: 500;
     }
     
-    .goal-progress-text {
+    .goal-percent {
         font-size: 0.75rem;
-        color: var(--accent);
         font-weight: 600;
+        color: var(--accent);
     }
     
+    .goal-bar {
+        height: 6px;
+        background: var(--bg-main);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    
+    .goal-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent), #6366f1);
+        border-radius: 3px;
+        transition: width 0.3s;
+    }
+    
+    /* Empty States */
+    .empty-state-mini {
+        text-align: center;
+        padding: 2rem 1rem;
+    }
+    
+    .empty-state-mini .empty-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.75rem;
+        display: block;
+    }
+    
+    .empty-state-mini p {
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+    }
+    
+    .empty-text {
+        text-align: center;
+        padding: 1.5rem 0;
+        color: var(--text-muted);
+        font-size: 0.875rem;
+    }
+    
+    .empty-text a {
+        color: var(--accent);
+        text-decoration: none;
+    }
+    
+    /* Responsive */
     @media (max-width: 1024px) {
-        .hero-row {
+        .quick-actions {
             grid-template-columns: 1fr;
         }
         
-        .dashboard-grid {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .main-grid {
             grid-template-columns: 1fr;
+        }
+    }
+    
+    @media (max-width: 640px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .stat-number {
+            font-size: 1.5rem;
         }
     }
 </style>

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Workout Details - Gym Tracker{% endblock %}
+{% block title %}Workout Details - IronLog{% endblock %}
 {% block page_title %}{{ workout.get_muscle_groups_display }}{% endblock %}
 
 {% block header_actions %}
@@ -58,7 +58,10 @@
                 {% for set in data.sets %}
                 <tr>
                     <td class="set-num-cell">{{ forloop.counter }}</td>
-                    <td class="weight-cell">{{ set.weight|floatformat:0 }} kg</td>
+                    <td class="weight-cell">
+                        {{ set.weight|floatformat:0 }} kg
+                        {% if set.is_dumbbell %}<span class="dumbbell-tag">×2</span>{% endif %}
+                    </td>
                     <td class="reps-cell">{{ set.reps }}</td>
                 </tr>
                 {% endfor %}
@@ -228,6 +231,18 @@
     .weight-cell {
         font-weight: 600;
         font-variant-numeric: tabular-nums;
+    }
+    
+    .dumbbell-tag {
+        display: inline-block;
+        font-size: 0.625rem;
+        font-weight: 600;
+        color: var(--accent);
+        background: var(--accent-light);
+        padding: 0.125rem 0.375rem;
+        border-radius: 4px;
+        margin-left: 0.375rem;
+        vertical-align: middle;
     }
     
     .reps-cell {

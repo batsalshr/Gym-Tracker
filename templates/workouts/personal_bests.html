@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Personal Bests - Gym Tracker{% endblock %}
+{% block title %}Personal Bests - IronLog{% endblock %}
 {% block page_title %}Personal Bests{% endblock %}
 
 {% block content %}
@@ -29,10 +29,13 @@
         {% endif %}
         <div class="pr-rank">#{{ forloop.counter }}</div>
         <div class="pr-exercise">{{ pb.exercise.name }}</div>
-        <div class="pr-muscle">{{ pb.exercise.get_muscle_group_display }}</div>
+        <div class="pr-muscle">
+            {{ pb.exercise.get_muscle_group_display }}
+            {% if pb.exercise.is_dumbbell %}<span class="pr-dumbbell-tag">DB</span>{% endif %}
+        </div>
         <div class="pr-main">
             <span class="pr-weight">{{ pb.weight }}</span>
-            <span class="pr-unit">kg</span>
+            <span class="pr-unit">kg{% if pb.exercise.is_dumbbell %} ×2{% endif %}</span>
         </div>
         <div class="pr-reps">× {{ pb.reps }} reps</div>
         <div class="pr-date">{{ pb.date|date:"M d, Y" }}</div>
@@ -182,6 +185,18 @@
         font-size: 0.75rem;
         color: var(--text-muted);
         margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .pr-dumbbell-tag {
+        background: var(--accent-light);
+        color: var(--accent);
+        font-size: 0.5625rem;
+        font-weight: 700;
+        padding: 0.125rem 0.375rem;
+        border-radius: 4px;
     }
     
     .pr-main {

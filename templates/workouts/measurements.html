@@ -1,0 +1,384 @@
+{% extends 'base.html' %}
+
+{% block title %}Measurements - IronLog{% endblock %}
+{% block page_title %}Body Measurements{% endblock %}
+
+{% block content %}
+<div class="measure-layout">
+    <!-- Main Content -->
+    <div class="measure-main">
+        <!-- Quick Stats -->
+        {% if latest %}
+        <div class="stats-row mb-2">
+            {% if latest.chest %}
+            <div class="measure-stat">
+                <span class="stat-label">Chest</span>
+                <span class="stat-value">{{ latest.chest }}</span>
+                <span class="stat-unit">cm</span>
+            </div>
+            {% endif %}
+            {% if latest.waist %}
+            <div class="measure-stat">
+                <span class="stat-label">Waist</span>
+                <span class="stat-value">{{ latest.waist }}</span>
+                <span class="stat-unit">cm</span>
+            </div>
+            {% endif %}
+            {% if latest.left_arm %}
+            <div class="measure-stat">
+                <span class="stat-label">Arms</span>
+                <span class="stat-value">{{ latest.left_arm }}</span>
+                <span class="stat-unit">cm</span>
+            </div>
+            {% endif %}
+            {% if latest.left_thigh %}
+            <div class="measure-stat">
+                <span class="stat-label">Thighs</span>
+                <span class="stat-value">{{ latest.left_thigh }}</span>
+                <span class="stat-unit">cm</span>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- Log Form -->
+        <div class="card mb-2">
+            <div class="card-header">
+                <h3 class="card-title">Log Measurements</h3>
+                <input type="date" name="date" form="measureForm" value="{{ today|date:'Y-m-d' }}" class="form-control" style="width: auto;">
+            </div>
+            
+            <form method="post" id="measureForm">
+                {% csrf_token %}
+                
+                <!-- Upper Body -->
+                <div class="measure-section">
+                    <h4 class="section-title">Upper Body</h4>
+                    <div class="measure-grid">
+                        <div class="measure-input">
+                            <label>Chest</label>
+                            <div class="input-wrap">
+                                <input type="number" name="chest" step="0.1" placeholder="--" value="{{ latest.chest|default:'' }}">
+                                <span>cm</span>
+                            </div>
+                        </div>
+                        <div class="measure-input">
+                            <label>Shoulders</label>
+                            <div class="input-wrap">
+                                <input type="number" name="shoulders" step="0.1" placeholder="--" value="{{ latest.shoulders|default:'' }}">
+                                <span>cm</span>
+                            </div>
+                        </div>
+                        <div class="measure-input">
+                            <label>Neck</label>
+                            <div class="input-wrap">
+                                <input type="number" name="neck" step="0.1" placeholder="--" value="{{ latest.neck|default:'' }}">
+                                <span>cm</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Arms -->
+                <div class="measure-section">
+                    <h4 class="section-title">Arms</h4>
+                    <div class="measure-grid">
+                        <div class="measure-input">
+                            <label>Left Arm</label>
+                            <div class="input-wrap">
+                                <input type="number" name="left_arm" step="0.1" placeholder="--" value="{{ latest.left_arm|default:'' }}">
+                                <span>cm</span>
+                            </div>
+                        </div>
+                        <div class="measure-input">
+                            <label>Right Arm</label>
+                            <div class="input-wrap">
+                                <input type="number" name="right_arm" step="0.1" placeholder="--" value="{{ latest.right_arm|default:'' }}">
+                                <span>cm</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Core -->
+                <div class="measure-section">
+                    <h4 class="section-title">Core</h4>
+                    <div class="measure-grid">
+                        <div class="measure-input">
+                            <label>Waist</label>
+                            <div class="input-wrap">
+                                <input type="number" name="waist" step="0.1" placeholder="--" value="{{ latest.waist|default:'' }}">
+                                <span>cm</span>
+                            </div>
+                        </div>
+                        <div class="measure-input">
+                            <label>Hips</label>
+                            <div class="input-wrap">
+                                <input type="number" name="hips" step="0.1" placeholder="--" value="{{ latest.hips|default:'' }}">
+                                <span>cm</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Legs -->
+                <div class="measure-section">
+                    <h4 class="section-title">Legs</h4>
+                    <div class="measure-grid">
+                        <div class="measure-input">
+                            <label>Left Thigh</label>
+                            <div class="input-wrap">
+                                <input type="number" name="left_thigh" step="0.1" placeholder="--" value="{{ latest.left_thigh|default:'' }}">
+                                <span>cm</span>
+                            </div>
+                        </div>
+                        <div class="measure-input">
+                            <label>Right Thigh</label>
+                            <div class="input-wrap">
+                                <input type="number" name="right_thigh" step="0.1" placeholder="--" value="{{ latest.right_thigh|default:'' }}">
+                                <span>cm</span>
+                            </div>
+                        </div>
+                        <div class="measure-input">
+                            <label>Left Calf</label>
+                            <div class="input-wrap">
+                                <input type="number" name="left_calf" step="0.1" placeholder="--" value="{{ latest.left_calf|default:'' }}">
+                                <span>cm</span>
+                            </div>
+                        </div>
+                        <div class="measure-input">
+                            <label>Right Calf</label>
+                            <div class="input-wrap">
+                                <input type="number" name="right_calf" step="0.1" placeholder="--" value="{{ latest.right_calf|default:'' }}">
+                                <span>cm</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Body Comp -->
+                <div class="measure-section">
+                    <h4 class="section-title">Body Composition</h4>
+                    <div class="measure-grid">
+                        <div class="measure-input">
+                            <label>Body Fat %</label>
+                            <div class="input-wrap">
+                                <input type="number" name="body_fat_percent" step="0.1" placeholder="--" value="{{ latest.body_fat_percent|default:'' }}">
+                                <span>%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Save Measurements</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="measure-side">
+        <!-- History -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">History</h3>
+            </div>
+            
+            <div class="history-list">
+                {% for m in measurements %}
+                <div class="history-item">
+                    <div class="history-date">{{ m.date|date:"M d, Y" }}</div>
+                    <div class="history-summary">
+                        {% if m.chest %}Chest: {{ m.chest }}{% endif %}
+                        {% if m.waist %}Waist: {{ m.waist }}{% endif %}
+                        {% if m.left_arm %}Arm: {{ m.left_arm }}{% endif %}
+                    </div>
+                    <form method="post" action="{% url 'delete_measurement' m.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-delete" onclick="return confirm('Delete?')">×</button>
+                    </form>
+                </div>
+                {% empty %}
+                <p class="text-muted" style="text-align: center; padding: 2rem;">No measurements yet</p>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Tips -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">📏 Tips</h3>
+            </div>
+            <ul class="tips-list">
+                <li>Measure at the same time each day</li>
+                <li>Use a flexible tape measure</li>
+                <li>Keep tape parallel to floor</li>
+                <li>Don't pull tape too tight</li>
+                <li>Measure weekly for best tracking</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<style>
+    .measure-layout {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 1.5rem;
+    }
+    
+    .stats-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+    
+    .measure-stat {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.75rem 1rem;
+        display: flex;
+        align-items: baseline;
+        gap: 0.375rem;
+    }
+    
+    .measure-stat .stat-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        text-transform: capitalize;
+    }
+    
+    .measure-stat .stat-value {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    .measure-stat .stat-unit {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .measure-section {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .measure-section:last-of-type {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+    
+    .section-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        margin-bottom: 0.75rem;
+    }
+    
+    .measure-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 0.75rem;
+    }
+    
+    .measure-input label {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        margin-bottom: 0.375rem;
+    }
+    
+    .input-wrap {
+        display: flex;
+        align-items: center;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0 0.75rem;
+    }
+    
+    .input-wrap:focus-within {
+        border-color: var(--accent);
+    }
+    
+    .input-wrap input {
+        flex: 1;
+        padding: 0.5rem 0;
+        border: none;
+        background: transparent;
+        color: var(--text-primary);
+        font-size: 1rem;
+        font-weight: 600;
+        width: 100%;
+        outline: none;
+    }
+    
+    .input-wrap span {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+    
+    .history-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .history-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .history-item:last-child {
+        border-bottom: none;
+    }
+    
+    .history-date {
+        font-size: 0.8125rem;
+        font-weight: 500;
+        min-width: 90px;
+    }
+    
+    .history-summary {
+        flex: 1;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .btn-delete {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-size: 1.25rem;
+        cursor: pointer;
+        padding: 0;
+    }
+    
+    .btn-delete:hover {
+        color: var(--danger);
+    }
+    
+    .tips-list {
+        padding-left: 1.25rem;
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+    }
+    
+    .tips-list li {
+        margin-bottom: 0.5rem;
+    }
+    
+    @media (max-width: 1024px) {
+        .measure-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}

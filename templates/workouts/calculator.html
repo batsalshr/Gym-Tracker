@@ -1,0 +1,318 @@
+{% extends 'base.html' %}
+
+{% block title %}1RM Calculator - IronLog{% endblock %}
+{% block page_title %}1RM Calculator{% endblock %}
+
+{% block content %}
+<div class="calc-layout">
+    <!-- Calculator -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Calculate Your One Rep Max</h3>
+        </div>
+        
+        <div class="calc-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Weight Lifted</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="weight" class="form-control" placeholder="0" step="0.5" oninput="calculate()">
+                        <span class="unit">kg</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Reps Performed</label>
+                    <input type="number" id="reps" class="form-control" placeholder="0" min="1" max="30" oninput="calculate()">
+                </div>
+            </div>
+            
+            <!-- Quick Reps -->
+            <div class="quick-reps">
+                <button type="button" class="rep-btn" onclick="setReps(3)">3</button>
+                <button type="button" class="rep-btn" onclick="setReps(5)">5</button>
+                <button type="button" class="rep-btn" onclick="setReps(8)">8</button>
+                <button type="button" class="rep-btn" onclick="setReps(10)">10</button>
+                <button type="button" class="rep-btn" onclick="setReps(12)">12</button>
+            </div>
+        </div>
+        
+        <!-- Result -->
+        <div class="result-box" id="result" style="display: none;">
+            <div class="result-label">Estimated 1RM</div>
+            <div class="result-value"><span id="oneRM">0</span> kg</div>
+            <div class="result-formula" id="formula"></div>
+        </div>
+    </div>
+    
+    <!-- Percentage Table -->
+    <div class="card" id="percentTable" style="display: none;">
+        <div class="card-header">
+            <h3 class="card-title">Training Percentages</h3>
+        </div>
+        
+        <table class="percent-table">
+            <thead>
+                <tr>
+                    <th>%</th>
+                    <th>Weight</th>
+                    <th>Est. Reps</th>
+                    <th>Use For</th>
+                </tr>
+            </thead>
+            <tbody id="percentBody">
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Info -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">About 1RM</h3>
+        </div>
+        <div class="info-content">
+            <p><strong>One Rep Max (1RM)</strong> is the maximum weight you can lift for a single repetition with proper form.</p>
+            
+            <h4>Formulas Used:</h4>
+            <ul>
+                <li><strong>Epley:</strong> weight × (1 + reps/30)</li>
+                <li><strong>Brzycki:</strong> weight × 36 / (37 - reps)</li>
+                <li><strong>Lander:</strong> 100 × weight / (101.3 - 2.67 × reps)</li>
+            </ul>
+            
+            <h4>Tips:</h4>
+            <ul>
+                <li>Most accurate with 1-10 reps</li>
+                <li>Use a weight you can lift with good form</li>
+                <li>Results are estimates, actual 1RM may vary</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<style>
+    .calc-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+    
+    .calc-layout > .card:first-child {
+        grid-column: 1 / -1;
+    }
+    
+    .calc-form {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+    
+    .input-with-unit {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    
+    .input-with-unit .form-control {
+        padding-right: 3rem;
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+    
+    .input-with-unit .unit {
+        position: absolute;
+        right: 1rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+    
+    #reps {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+    
+    .quick-reps {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    
+    .rep-btn {
+        flex: 1;
+        padding: 0.625rem;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text-secondary);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    
+    .rep-btn:hover {
+        border-color: var(--accent);
+        color: var(--text-primary);
+    }
+    
+    .result-box {
+        background: linear-gradient(135deg, var(--accent-light), rgba(99, 102, 241, 0.1));
+        border: 1px solid var(--accent);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .result-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+    
+    .result-value {
+        font-size: 3rem;
+        font-weight: 800;
+        color: var(--accent);
+        line-height: 1;
+        margin-bottom: 0.5rem;
+    }
+    
+    .result-formula {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+    
+    .percent-table {
+        width: 100%;
+    }
+    
+    .percent-table th {
+        text-align: left;
+        padding: 0.75rem;
+        font-size: 0.6875rem;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .percent-table td {
+        padding: 0.625rem 0.75rem;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .percent-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .percent-table .percent {
+        font-weight: 600;
+        color: var(--accent);
+    }
+    
+    .percent-table .weight-val {
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+    }
+    
+    .percent-table .use-for {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+    
+    .info-content {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        line-height: 1.7;
+    }
+    
+    .info-content h4 {
+        color: var(--text-primary);
+        margin: 1rem 0 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .info-content ul {
+        padding-left: 1.25rem;
+        margin: 0;
+    }
+    
+    .info-content li {
+        margin-bottom: 0.375rem;
+    }
+    
+    @media (max-width: 768px) {
+        .calc-layout {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function setReps(r) {
+    document.getElementById('reps').value = r;
+    calculate();
+}
+
+function calculate() {
+    const weight = parseFloat(document.getElementById('weight').value) || 0;
+    const reps = parseInt(document.getElementById('reps').value) || 0;
+    
+    if (weight <= 0 || reps <= 0) {
+        document.getElementById('result').style.display = 'none';
+        document.getElementById('percentTable').style.display = 'none';
+        return;
+    }
+    
+    // Calculate using multiple formulas and average
+    const epley = weight * (1 + reps / 30);
+    const brzycki = weight * 36 / (37 - reps);
+    const lander = (100 * weight) / (101.3 - 2.67 * reps);
+    
+    // Use average for more accuracy
+    const oneRM = Math.round((epley + brzycki + lander) / 3 * 2) / 2; // Round to 0.5
+    
+    document.getElementById('oneRM').textContent = oneRM.toFixed(1);
+    document.getElementById('formula').textContent = `Based on ${weight}kg × ${reps} reps (Epley/Brzycki/Lander average)`;
+    document.getElementById('result').style.display = 'block';
+    
+    // Generate percentage table
+    const percentages = [
+        { pct: 100, reps: '1', use: 'Max Test' },
+        { pct: 95, reps: '2', use: 'Peaking' },
+        { pct: 90, reps: '3-4', use: 'Strength' },
+        { pct: 85, reps: '5-6', use: 'Strength' },
+        { pct: 80, reps: '7-8', use: 'Hypertrophy' },
+        { pct: 75, reps: '9-10', use: 'Hypertrophy' },
+        { pct: 70, reps: '11-12', use: 'Endurance' },
+        { pct: 65, reps: '13-15', use: 'Warm-up' },
+        { pct: 60, reps: '15-20', use: 'Warm-up' },
+    ];
+    
+    let tableHtml = '';
+    percentages.forEach(p => {
+        const w = Math.round(oneRM * p.pct / 100 * 2) / 2;
+        tableHtml += `
+            <tr>
+                <td class="percent">${p.pct}%</td>
+                <td class="weight-val">${w.toFixed(1)} kg</td>
+                <td>${p.reps}</td>
+                <td class="use-for">${p.use}</td>
+            </tr>
+        `;
+    });
+    
+    document.getElementById('percentBody').innerHTML = tableHtml;
+    document.getElementById('percentTable').style.display = 'block';
+}
+</script>
+{% endblock %}
