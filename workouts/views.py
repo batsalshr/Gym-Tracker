@@ -421,25 +421,26 @@ class BodyWeightView(View):
         
         # Chart data
         chart_data = [
-            {'date': w.date.isoformat(), 'weight': float(w.weight)}
+            {'date': w.date.strftime('%b %d'), 'weight': float(w.weight)}
             for w in reversed(list(weights))
         ]
         
         # Stats
         latest = weights.first() if weights else None
+        total_entries = BodyWeight.objects.count()
         
+        weight_change = 0
         if weights.count() >= 2:
             oldest_in_range = weights[min(len(weights)-1, 29)]
-            change = float(latest.weight - oldest_in_range.weight) if latest else 0
-        else:
-            change = 0
+            weight_change = float(latest.weight - oldest_in_range.weight) if latest else 0
         
         context = {
             'weights': weights,
             'chart_data': chart_data,
             'latest': latest,
-            'change': change,
-            'today': timezone.now().date().isoformat(),
+            'weight_change': weight_change,
+            'total_entries': total_entries,
+            'today': timezone.now().date(),
         }
         return render(request, 'workouts/bodyweight.html', context)
     

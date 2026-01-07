@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}History - Gym Tracker{% endblock %}
+{% block title %}History - IronLog{% endblock %}
 {% block page_title %}Workout History{% endblock %}
 
 {% block header_actions %}
@@ -8,58 +8,71 @@
 {% endblock %}
 
 {% block content %}
-<!-- Simple Filter Bar -->
+<!-- Filter Bar -->
 <div class="filter-bar">
     <form method="get" class="filter-form">
-        <select name="muscle" class="filter-select" onchange="this.form.submit()">
+        <select name="muscle" class="form-control" onchange="this.form.submit()">
             <option value="">All Muscles</option>
             {% for value, label in muscle_groups %}
             <option value="{{ value }}" {% if filters.muscle == value %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
         </select>
         
-        <select name="sort" class="filter-select" onchange="this.form.submit()">
+        <select name="sort" class="form-control" onchange="this.form.submit()">
             <option value="-date" {% if filters.sort == '-date' %}selected{% endif %}>Newest</option>
             <option value="date" {% if filters.sort == 'date' %}selected{% endif %}>Oldest</option>
-            <option value="volume" {% if filters.sort == 'volume' %}selected{% endif %}>Most Volume</option>
+            <option value="volume" {% if filters.sort == 'volume' %}selected{% endif %}>Volume</option>
         </select>
         
         {% if filters.muscle or filters.sort != '-date' %}
-        <a href="{% url 'history' %}" class="clear-link">Clear</a>
+        <a href="{% url 'history' %}" class="btn btn-ghost btn-sm">Clear</a>
         {% endif %}
     </form>
     
     <span class="results-count">{{ workouts|length }} workout{% if workouts|length != 1 %}s{% endif %}</span>
 </div>
 
-<!-- Workout List -->
+<!-- Workouts -->
 {% if workouts %}
-<div class="workout-list">
+<div class="workouts-list">
     {% for workout in workouts %}
-    <a href="{% url 'workout_detail' workout.id %}" class="workout-card">
+    <div class="workout-item">
         <div class="workout-date">
-            <span class="date-day">{{ workout.date|date:"d" }}</span>
-            <span class="date-month">{{ workout.date|date:"M" }}</span>
+            <div class="workout-date-day">{{ workout.date|date:"d" }}</div>
+            <div class="workout-date-month">{{ workout.date|date:"M" }}</div>
         </div>
-        <div class="workout-info">
+        <a href="{% url 'workout_detail' workout.id %}" class="workout-info">
             <div class="workout-title">{{ workout.get_muscle_groups_display }}</div>
             <div class="workout-exercises">
-                {% for name, data in workout.get_exercises_summary.items %}{{ name }}{% if not forloop.last %} · {% endif %}{% empty %}No exercises{% endfor %}
+                {% for name, data in workout.get_exercises_summary.items %}{{ name }}{% if not forloop.last %} • {% endif %}{% empty %}No exercises{% endfor %}
             </div>
+            <div class="workout-meta">
+                <span><strong>{{ workout.get_total_sets }}</strong> sets</span>
+                <span><strong>{{ workout.get_total_volume|floatformat:0 }}</strong> kg</span>
+            </div>
+        </a>
+        <div class="workout-actions">
+            <a href="{% url 'add_exercises' workout.id %}" class="btn btn-ghost btn-icon" title="Edit">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </a>
+            <form method="post" action="{% url 'delete_workout' workout.id %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-ghost btn-icon" onclick="return confirm('Delete?')" title="Delete">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+            </form>
         </div>
-        <div class="workout-stats">
-            <span><strong>{{ workout.get_total_sets }}</strong> sets</span>
-            <span><strong>{{ workout.get_total_volume|floatformat:0 }}</strong> kg</span>
-        </div>
-    </a>
+    </div>
     {% endfor %}
 </div>
 {% else %}
-<div class="empty-state">
-    <div class="empty-state-icon">📋</div>
-    <h3>No workouts yet</h3>
-    <p>Start logging your workouts!</p>
-    <a href="{% url 'log_workout' %}" class="btn btn-primary">Log Workout</a>
+<div class="card">
+    <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <h3>No workouts yet</h3>
+        <p>Start logging your progress!</p>
+        <a href="{% url 'log_workout' %}" class="btn btn-primary">Log Workout</a>
+    </div>
 </div>
 {% endif %}
 
@@ -68,8 +81,8 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 1.5rem;
         gap: 1rem;
+        margin-bottom: 1.5rem;
     }
     
     .filter-form {
@@ -78,33 +91,9 @@
         gap: 0.75rem;
     }
     
-    .filter-select {
-        padding: 0.5rem 2rem 0.5rem 0.75rem;
-        font-size: 0.875rem;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        background: var(--bg-card);
-        color: var(--text-primary);
-        cursor: pointer;
-        appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239CA3AF' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 0.5rem center;
-    }
-    
-    .filter-select:focus {
-        outline: none;
-        border-color: var(--accent);
-    }
-    
-    .clear-link {
-        font-size: 0.875rem;
-        color: var(--text-muted);
-        text-decoration: none;
-    }
-    
-    .clear-link:hover {
-        color: var(--accent);
+    .filter-form .form-control {
+        width: auto;
+        min-width: 140px;
     }
     
     .results-count {
@@ -112,78 +101,17 @@
         color: var(--text-muted);
     }
     
-    .workout-list {
+    .workouts-list {
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
-    }
-    
-    .workout-card {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 1rem 1.25rem;
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        text-decoration: none;
-        color: var(--text-primary);
-        transition: all 0.15s;
-    }
-    
-    .workout-card:hover {
-        border-color: var(--accent);
-        background: var(--bg-card-hover);
-    }
-    
-    .workout-date {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        min-width: 44px;
-    }
-    
-    .date-day {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: var(--accent);
-        line-height: 1;
-    }
-    
-    .date-month {
-        font-size: 0.625rem;
-        text-transform: uppercase;
-        color: var(--text-muted);
-        letter-spacing: 0.05em;
+        gap: 0.75rem;
     }
     
     .workout-info {
         flex: 1;
         min-width: 0;
-    }
-    
-    .workout-title {
-        font-weight: 600;
-        margin-bottom: 0.125rem;
-    }
-    
-    .workout-exercises {
-        font-size: 0.8125rem;
-        color: var(--text-muted);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    
-    .workout-stats {
-        display: flex;
-        gap: 1rem;
-        font-size: 0.8125rem;
-        color: var(--text-secondary);
-    }
-    
-    .workout-stats strong {
-        color: var(--text-primary);
+        text-decoration: none;
+        color: inherit;
     }
     
     @media (max-width: 640px) {
@@ -196,18 +124,12 @@
             width: 100%;
         }
         
-        .filter-select {
+        .filter-form .form-control {
             flex: 1;
         }
         
         .results-count {
             text-align: center;
-        }
-        
-        .workout-stats {
-            flex-direction: column;
-            gap: 0.25rem;
-            text-align: right;
         }
     }
 </style>

@@ -1,211 +1,308 @@
 {% extends 'base.html' %}
 
-{% block title %}Exercises - Gym Tracker{% endblock %}
+{% block title %}Exercises - IronLog{% endblock %}
 {% block page_title %}Exercise Library{% endblock %}
 
 {% block content %}
-<!-- Search -->
-<div class="card">
-    <form method="get" class="search-form">
-        <div class="search-input-wrap">
-            <span class="search-icon">🔍</span>
-            <input type="text" name="search" class="search-input" placeholder="Search exercises..." value="{{ search }}">
+<!-- Search & Add -->
+<div class="card mb-2">
+    <div class="search-add-row">
+        <form method="get" class="search-form">
+            <input type="text" name="search" class="form-control" placeholder="Search exercises..." value="{{ search }}">
             {% if search %}
-            <a href="{% url 'exercises' %}" class="search-clear">✕</a>
+            <a href="{% url 'exercises' %}" class="clear-search">×</a>
             {% endif %}
-        </div>
-        <button type="submit" class="btn btn-primary">Search</button>
-    </form>
-    
-    <div class="exercise-count">
-        <span class="badge badge-primary">{{ total_count }} exercises</span>
-    </div>
-</div>
-
-<!-- Add Custom Exercise -->
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title">➕ Add Custom Exercise</h2>
+        </form>
+        
+        <button class="btn btn-secondary" onclick="toggleAddForm()">+ Add Custom</button>
     </div>
     
-    <form method="post" class="add-exercise-form">
+    <!-- Add Form (hidden by default) -->
+    <form method="post" id="addForm" class="add-form" style="display: none;">
         {% csrf_token %}
-        <div class="form-row">
-            <div class="form-group" style="flex: 2;">
-                <input type="text" name="name" class="form-control" placeholder="Exercise name" required>
-            </div>
-            <div class="form-group" style="flex: 1;">
-                <select name="muscle_group" class="form-control" required>
-                    {% for value, label in muscle_groups %}
-                    <option value="{{ value }}">{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group" style="flex: 1;">
-                <select name="equipment" class="form-control">
-                    <option value="">Equipment</option>
-                    <option value="barbell">Barbell</option>
-                    <option value="dumbbell">Dumbbell</option>
-                    <option value="machine">Machine</option>
-                    <option value="cable">Cable</option>
-                    <option value="bodyweight">Bodyweight</option>
-                    <option value="other">Other</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary">Add</button>
-        </div>
+        <input type="text" name="name" class="form-control" placeholder="Exercise name" required>
+        <select name="muscle_group" class="form-control" required>
+            {% for value, label in muscle_groups %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+        </select>
+        <select name="equipment" class="form-control">
+            <option value="">Equipment</option>
+            <option value="barbell">Barbell</option>
+            <option value="dumbbell">Dumbbell</option>
+            <option value="machine">Machine</option>
+            <option value="cable">Cable</option>
+            <option value="bodyweight">Bodyweight</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Add</button>
     </form>
 </div>
 
-<!-- Exercise List -->
-{% if exercises_by_group %}
-{% for group, exercises in exercises_by_group.items %}
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title">{{ group }}</h2>
-        <span class="badge badge-primary">{{ exercises|length }}</span>
-    </div>
-    
-    <div class="exercise-list">
-        {% for exercise in exercises %}
-        <div class="exercise-item">
-            <div class="exercise-info">
-                <span class="exercise-name">{{ exercise.name }}</span>
-                {% if exercise.equipment %}
-                <span class="exercise-equipment">{{ exercise.equipment }}</span>
-                {% endif %}
-            </div>
-            <div class="exercise-actions">
-                {% if exercise.set_count > 0 %}
-                <a href="{% url 'exercise_progress' exercise.id %}" class="btn btn-ghost btn-sm">📈 Progress</a>
-                {% endif %}
-                <form method="post" action="{% url 'delete_exercise' exercise.id %}" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--danger);" onclick="return confirm('Delete {{ exercise.name }}?')">✕</button>
-                </form>
+<!-- Exercise Count -->
+<div class="exercise-summary">
+    <span class="badge badge-primary">{{ total_count }} exercises</span>
+    {% if search %}<span class="text-muted">matching "{{ search }}"</span>{% endif %}
+</div>
+
+<!-- Muscle Group Accordions -->
+<div class="accordion">
+    {% for group, exercises in exercises_by_group.items %}
+    <div class="accordion-item">
+        <button class="accordion-header" onclick="toggleAccordion(this)">
+            <span class="accordion-title">{{ group }}</span>
+            <span class="accordion-count">{{ exercises|length }}</span>
+            <svg class="accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"/>
+            </svg>
+        </button>
+        
+        <div class="accordion-content">
+            <div class="exercise-grid">
+                {% for exercise in exercises %}
+                <div class="exercise-item">
+                    <div class="exercise-info">
+                        <span class="exercise-name">{{ exercise.name }}</span>
+                        {% if exercise.equipment %}
+                        <span class="exercise-equipment">{{ exercise.equipment }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="exercise-actions">
+                        {% if exercise.set_count > 0 %}
+                        <a href="{% url 'exercise_progress' exercise.id %}" class="btn btn-ghost btn-sm" title="View Progress">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                        </a>
+                        {% endif %}
+                        <form method="post" action="{% url 'delete_exercise' exercise.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-ghost btn-sm" onclick="return confirm('Delete {{ exercise.name }}?')" title="Delete">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
         </div>
-        {% endfor %}
     </div>
-</div>
-{% endfor %}
-{% else %}
-<div class="card">
+    {% empty %}
     <div class="empty-state">
-        <div class="empty-state-icon">🏋️</div>
-        <h3>{% if search %}No exercises found{% else %}No exercises yet{% endif %}</h3>
-        <p>{% if search %}Try a different search term{% else %}Add your first exercise above{% endif %}</p>
+        <div class="empty-icon">🏋️</div>
+        <h3>No exercises found</h3>
+        <p>{% if search %}Try a different search{% else %}Add your first exercise{% endif %}</p>
     </div>
+    {% endfor %}
 </div>
-{% endif %}
 
 <style>
-    .search-form {
+    .search-add-row {
         display: flex;
-        gap: 1rem;
+        gap: 0.75rem;
         align-items: center;
     }
     
-    .search-input-wrap {
+    .search-form {
         flex: 1;
         position: relative;
         display: flex;
         align-items: center;
     }
     
-    .search-icon {
-        position: absolute;
-        left: 1rem;
-        font-size: 1rem;
+    .search-form .form-control {
+        padding-right: 2rem;
     }
     
-    .search-input {
-        width: 100%;
-        padding: 0.875rem 1rem 0.875rem 3rem;
-        font-size: 1rem;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        background: var(--bg-input);
+    .clear-search {
+        position: absolute;
+        right: 0.75rem;
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 1.25rem;
+        line-height: 1;
+    }
+    
+    .clear-search:hover {
         color: var(--text-primary);
     }
     
-    .search-input:focus {
-        outline: none;
-        border-color: var(--accent);
-    }
-    
-    .search-clear {
-        position: absolute;
-        right: 1rem;
-        color: var(--text-muted);
-        text-decoration: none;
-    }
-    
-    .exercise-count {
+    .add-form {
+        display: flex;
+        gap: 0.75rem;
         margin-top: 1rem;
         padding-top: 1rem;
         border-top: 1px solid var(--border);
     }
     
-    .add-exercise-form .form-row {
+    .add-form .form-control {
+        flex: 1;
+    }
+    
+    .exercise-summary {
         display: flex;
-        gap: 1rem;
-        align-items: flex-end;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
     }
     
-    .add-exercise-form .form-group {
-        margin-bottom: 0;
-    }
-    
-    .exercise-list {
+    .accordion {
         display: flex;
         flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .accordion-item {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+    
+    .accordion-header {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        padding: 1rem 1.25rem;
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        font-size: 0.9375rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s;
+        text-align: left;
+        font-family: inherit;
+    }
+    
+    .accordion-header:hover {
+        background: var(--bg-card-hover);
+    }
+    
+    .accordion-title {
+        flex: 1;
+    }
+    
+    .accordion-count {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--accent);
+        background: var(--accent-light);
+        padding: 0.125rem 0.5rem;
+        border-radius: 4px;
+        margin-right: 0.75rem;
+    }
+    
+    .accordion-icon {
+        width: 18px;
+        height: 18px;
+        color: var(--text-muted);
+        transition: transform 0.2s;
+    }
+    
+    .accordion-item.open .accordion-icon {
+        transform: rotate(180deg);
+    }
+    
+    .accordion-content {
+        display: none;
+        padding: 0 1.25rem 1rem;
+    }
+    
+    .accordion-item.open .accordion-content {
+        display: block;
+    }
+    
+    .exercise-grid {
+        display: grid;
+        gap: 0.375rem;
     }
     
     .exercise-item {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        padding: 0.875rem 0;
-        border-bottom: 1px solid var(--border);
+        justify-content: space-between;
+        padding: 0.625rem 0.875rem;
+        background: var(--bg-main);
+        border-radius: var(--radius);
+        transition: background 0.1s;
     }
     
-    .exercise-item:last-child {
-        border-bottom: none;
+    .exercise-item:hover {
+        background: var(--bg-card-hover);
     }
     
     .exercise-info {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
+        gap: 0.625rem;
+        min-width: 0;
     }
     
     .exercise-name {
+        font-size: 0.875rem;
         font-weight: 500;
     }
     
     .exercise-equipment {
-        font-size: 0.75rem;
+        font-size: 0.6875rem;
         color: var(--text-muted);
+        background: var(--bg-card);
+        padding: 0.125rem 0.375rem;
+        border-radius: 4px;
         text-transform: capitalize;
-        padding: 0.125rem 0.5rem;
-        background: var(--bg-main);
-        border-radius: var(--radius);
     }
     
     .exercise-actions {
         display: flex;
-        gap: 0.25rem;
+        gap: 0.125rem;
+        opacity: 0;
+        transition: opacity 0.15s;
     }
     
-    @media (max-width: 768px) {
-        .add-exercise-form .form-row {
+    .exercise-item:hover .exercise-actions {
+        opacity: 1;
+    }
+    
+    @media (max-width: 640px) {
+        .search-add-row {
             flex-direction: column;
         }
         
-        .add-exercise-form .form-group {
+        .search-form {
             width: 100%;
+        }
+        
+        .search-add-row .btn {
+            width: 100%;
+        }
+        
+        .add-form {
+            flex-direction: column;
+        }
+        
+        .exercise-actions {
+            opacity: 1;
         }
     }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleAddForm() {
+    const form = document.getElementById('addForm');
+    form.style.display = form.style.display === 'none' ? 'flex' : 'none';
+}
+
+function toggleAccordion(button) {
+    const item = button.parentElement;
+    item.classList.toggle('open');
+}
+
+// Open first accordion by default if not searching
+{% if not search %}
+document.querySelector('.accordion-item')?.classList.add('open');
+{% else %}
+// Open all when searching
+document.querySelectorAll('.accordion-item').forEach(item => item.classList.add('open'));
+{% endif %}
+</script>
 {% endblock %}
