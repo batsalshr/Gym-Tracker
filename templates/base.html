@@ -13,6 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         :root {
             --bg-main: #0c1220;
@@ -56,6 +57,31 @@
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* Global custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+        
+        /* Firefox */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
         
         body {
             font-family: 'Inter', -apple-system, sans-serif;
@@ -112,6 +138,39 @@
             flex: 1;
             padding: 1rem 0;
             overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+        
+        /* Custom scrollbar for webkit browsers */
+        .sidebar-nav::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .sidebar-nav::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .sidebar-nav::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+        
+        .sidebar-nav::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+        
+        /* Hide scrollbar when not hovering */
+        .sidebar-nav {
+            scrollbar-gutter: stable;
+        }
+        
+        .sidebar:hover .sidebar-nav::-webkit-scrollbar-thumb {
+            background: var(--border);
+        }
+        
+        .sidebar-nav:not(:hover)::-webkit-scrollbar-thumb {
+            background: transparent;
         }
         
         .nav-section { margin-bottom: 1.5rem; }
@@ -282,13 +341,15 @@
             flex: 1;
             margin-left: 220px;
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         
         .header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 1rem 1.5rem;
+            padding: 1rem 2rem;
             background: var(--bg-sidebar);
             border-bottom: 1px solid var(--border);
             position: sticky;
@@ -316,7 +377,13 @@
             color: white;
         }
         
-        .content { padding: 1.5rem; max-width: 1400px; }
+        .content {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+        }
         
         /* Cards */
         .card {
@@ -778,6 +845,12 @@
             .main { margin-left: 0; padding-bottom: 80px; }
             .bottom-nav { display: block; }
             .content { padding: 1rem; }
+        }
+        
+        @media (min-width: 1600px) {
+            .content { 
+                padding: 2.5rem 3rem;
+            }
         }
         
         /* Utilities */

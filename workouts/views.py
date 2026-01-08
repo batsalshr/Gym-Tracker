@@ -60,15 +60,18 @@ class DashboardView(LoginRequiredMixin, View):
                     'date': pb.workout.date
                 })
         
-        # Streak calculation
+        # Streak calculation - check from today or yesterday
         streak = 0
         current_date = timezone.now().date()
-        while True:
-            if Workout.objects.filter(user=user, date=current_date).exists():
-                streak += 1
-                current_date -= timedelta(days=1)
-            else:
-                break
+        
+        # If no workout today, start checking from yesterday
+        if not Workout.objects.filter(user=user, date=current_date).exists():
+            current_date -= timedelta(days=1)
+        
+        # Count consecutive days with workouts
+        while Workout.objects.filter(user=user, date=current_date).exists():
+            streak += 1
+            current_date -= timedelta(days=1)
         
         # Active goals
         active_goals = Goal.objects.filter(user=user, status='active')[:3]
@@ -335,24 +338,71 @@ class ExerciseListView(LoginRequiredMixin, View):
     def get(self, request):
         search = request.GET.get('search', '')
         
-        exercises_by_group = {}
-        queryset = Exercise.objects.annotate(set_count=Count('sets'))
-        
-        if search:
-            queryset = queryset.filter(name__icontains=search)
-        
-        for exercise in queryset:
-            group = exercise.get_muscle_group_display()
-            if group not in exercises_by_group:
-                exercises_by_group[group] = []
-            exercises_by_group[group].append(exercise)
-        
-        context = {
-            'exercises_by_group': exercises_by_group,
-            'muscle_groups': Exercise.MUSCLE_GROUPS,
-            'search': search,
-            'total_count': Exercise.objects.count(),
+        # Muscle group Font Awesome icons
+        MUSCLE_ICONS = {
+            'chest': 'fa-heart-pulse',
+            'back': 'fa-arrows-up-down',
+            'shoulders': 'fa-child-reaching',
+            'legs': 'fa-person-walking',
+            'biceps': 'fa-dumbbell',
+            'triceps': 'fa-hand-fist',
+            'core': 'fa-circle-dot',
+            'cardio': 'fa-heart',
+            'glutes': 'fa-hippo',
+            'forearms': 'fa-hand',
+            'calves': 'fa-socks',
+            'traps': 'fa-diamond'
         }
+        
+        selected_group = request.GET.get('group')
+        search = request.GET.get('search', '')
+        
+        if selected_group:
+            # Show exercises for specific muscle group
+            queryset = Exercise.objects.filter(
+                Q(user=request.user) | Q(user__isnull=True),
+                muscle_group=selected_group
+            ).annotate(
+                set_count=Count('sets', filter=Q(sets__workout__user=request.user))
+            ).order_by('name')
+            
+            if search:
+                queryset = queryset.filter(name__icontains=search)
+            
+            selected_group_display = dict(Exercise.MUSCLE_GROUPS).get(selected_group, selected_group)
+            
+            context = {
+                'selected_group': selected_group,
+                'selected_group_display': selected_group_display,
+                'group_icon': MUSCLE_ICONS.get(selected_group, 'fa-dumbbell'),
+                'exercises': queryset,
+                'search': search,
+                'muscle_groups': Exercise.MUSCLE_GROUPS,
+            }
+        else:
+            # Show muscle group cards
+            muscle_group_data = []
+            for value, label in Exercise.MUSCLE_GROUPS:
+                count = Exercise.objects.filter(
+                    Q(user=request.user) | Q(user__isnull=True),
+                    muscle_group=value
+                ).count()
+                muscle_group_data.append({
+                    'value': value,
+                    'label': label,
+                    'icon': MUSCLE_ICONS.get(value, 'fa-dumbbell'),
+                    'count': count,
+                })
+            
+            context = {
+                'selected_group': None,
+                'muscle_group_data': muscle_group_data,
+                'muscle_groups': Exercise.MUSCLE_GROUPS,
+                'total_count': Exercise.objects.filter(
+                    Q(user=request.user) | Q(user__isnull=True)
+                ).count(),
+            }
+        
         return render(request, 'workouts/exercises.html', context)
     
     def post(self, request):
@@ -368,6 +418,9 @@ class ExerciseListView(LoginRequiredMixin, View):
             )
             messages.success(request, f'{name} added!')
         
+        # Redirect back to the muscle group page if we were on one
+        if muscle_group:
+            return redirect(f'/exercises/?group={muscle_group}')
         return redirect('exercises')
 
 
@@ -1080,9 +1133,13 @@ class AchievementsView(LoginRequiredMixin, View):
         streak = 0
         check_date = today
         
-        while check_date in dates or (check_date == today and (today - timedelta(days=1)) in dates):
-            if check_date in dates:
-                streak += 1
+        # If no workout today, start from yesterday
+        if check_date not in dates:
+            check_date -= timedelta(days=1)
+        
+        # Count consecutive days
+        while check_date in dates:
+            streak += 1
             check_date -= timedelta(days=1)
         
         return streak

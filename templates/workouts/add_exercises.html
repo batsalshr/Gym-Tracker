@@ -5,9 +5,9 @@
 
 {% block header_actions %}
 <div style="display: flex; gap: 0.75rem; align-items: center;">
-    <span class="badge badge-primary" style="padding: 0.5rem 1rem;">{{ workout.date|date:"M d, Y" }}</span>
+    <span class="badge badge-primary" style="padding: 0.5rem 1rem;"><i class="fa-solid fa-calendar"></i> {{ workout.date|date:"M d, Y" }}</span>
     <a href="{% url 'workout_detail' workout.id %}" class="btn btn-primary">
-        ✓ Finish Workout
+        <i class="fa-solid fa-check"></i> Finish Workout
     </a>
 </div>
 {% endblock %}
@@ -16,14 +16,17 @@
 <!-- Workout Summary -->
 <div class="workout-summary">
     <div class="summary-stat">
+        <span class="summary-icon"><i class="fa-solid fa-dumbbell"></i></span>
         <span class="summary-value" id="total-exercises">{{ logged_exercises|length }}</span>
         <span class="summary-label">Exercises</span>
     </div>
     <div class="summary-stat">
+        <span class="summary-icon"><i class="fa-solid fa-layer-group"></i></span>
         <span class="summary-value" id="total-sets">{{ workout.get_total_sets }}</span>
         <span class="summary-label">Sets</span>
     </div>
     <div class="summary-stat">
+        <span class="summary-icon"><i class="fa-solid fa-weight-hanging"></i></span>
         <span class="summary-value" id="total-volume">{{ workout.get_total_volume|floatformat:0 }}</span>
         <span class="summary-label">kg Volume</span>
     </div>
@@ -32,7 +35,7 @@
 <!-- Add Exercise Form -->
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">➕ Add Exercise</h2>
+        <h2 class="card-title"><i class="fa-solid fa-plus"></i> Add Exercise</h2>
     </div>
     
     <form method="post" id="exercise-form">
@@ -40,7 +43,7 @@
         
         <!-- Exercise Search -->
         <div class="form-group">
-            <label class="form-label">Search Exercise</label>
+            <label class="form-label"><i class="fa-solid fa-search"></i> Search Exercise</label>
             <div class="autocomplete-wrapper">
                 <input type="text" 
                        id="exercise-search" 
@@ -57,22 +60,22 @@
             <div class="selected-exercise">
                 <div class="selected-exercise-name" id="selected-name"></div>
                 <span class="badge badge-primary" id="selected-group"></span>
-                <span class="badge badge-dumbbell" id="dumbbell-indicator" style="display: none;">🏋️ Dumbbell (weight ×2)</span>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="clearSelection()">✕ Change</button>
+                <span class="badge badge-dumbbell" id="dumbbell-indicator" style="display: none;"><i class="fa-solid fa-dumbbell"></i> Dumbbell (×2)</span>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="clearSelection()"><i class="fa-solid fa-xmark"></i> Change</button>
             </div>
             
             <!-- Performance Hints -->
             <div class="performance-hints">
                 <div id="last-performance" class="hint-card" style="display: none;">
-                    <span class="hint-icon">📊</span>
+                    <span class="hint-icon"><i class="fa-solid fa-chart-simple"></i></span>
                     <span class="hint-text" id="last-text"></span>
                 </div>
                 <div id="pb-info" class="hint-card pr" style="display: none;">
-                    <span class="hint-icon">🏆</span>
+                    <span class="hint-icon"><i class="fa-solid fa-trophy"></i></span>
                     <span class="hint-text" id="pb-text"></span>
                 </div>
                 <div id="dumbbell-hint" class="hint-card info" style="display: none;">
-                    <span class="hint-icon">ℹ️</span>
+                    <span class="hint-icon"><i class="fa-solid fa-circle-info"></i></span>
                     <span class="hint-text">Enter weight per dumbbell – total volume calculated as ×2</span>
                 </div>
             </div>
@@ -92,17 +95,17 @@
                 </div>
                 
                 <button type="button" class="btn btn-secondary btn-sm" onclick="addSet()" style="margin-top: 0.75rem;">
-                    ➕ Add Set
+                    <i class="fa-solid fa-plus"></i> Add Set
                 </button>
             </div>
             
             <!-- Actions -->
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary" id="save-btn">
-                    Save & Add Another
+                    <i class="fa-solid fa-rotate"></i> Save & Add Another
                 </button>
                 <button type="submit" name="finish" class="btn btn-secondary" id="finish-btn">
-                    Save & Finish
+                    <i class="fa-solid fa-check"></i> Save & Finish
                 </button>
             </div>
         </div>
@@ -113,7 +116,7 @@
 {% if logged_exercises %}
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">✓ Logged Exercises</h2>
+        <h2 class="card-title"><i class="fa-solid fa-check-circle"></i> Logged Exercises</h2>
         <span class="badge badge-success">{{ logged_exercises|length }} exercises</span>
     </div>
     
@@ -124,7 +127,7 @@
                 <span class="logged-exercise-name">{{ name }}</span>
                 <span class="badge badge-primary" style="margin-left: 0.5rem;">{{ data.sets|length }} sets</span>
             </div>
-            <a href="{% url 'exercise_progress' data.exercise.id %}" class="btn btn-ghost btn-sm">📈</a>
+            <a href="{% url 'exercise_progress' data.exercise.id %}" class="btn btn-ghost btn-sm"><i class="fa-solid fa-chart-line"></i></a>
         </div>
         <div class="logged-sets">
             {% for set in data.sets %}
@@ -133,7 +136,7 @@
                 <span class="logged-set-value">{{ set.weight }}kg × {{ set.reps }}</span>
                 <form method="post" action="{% url 'delete_set' set.id %}" style="display: inline;">
                     {% csrf_token %}
-                    <button type="submit" class="delete-set-btn">✕</button>
+                    <button type="submit" class="delete-set-btn"><i class="fa-solid fa-xmark"></i></button>
                 </form>
             </div>
             {% endfor %}
@@ -162,21 +165,38 @@
         border-radius: var(--radius-lg);
         padding: 1.25rem;
         text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .summary-icon {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--accent-light);
+        color: var(--accent);
+        border-radius: var(--radius);
+        font-size: 1rem;
     }
     
     .summary-value {
         display: block;
-        font-size: 2rem;
+        font-size: 1.75rem;
         font-weight: 700;
-        color: var(--accent);
+        color: var(--text-primary);
         line-height: 1;
         font-variant-numeric: tabular-nums;
     }
     
     .summary-label {
-        font-size: 0.8125rem;
+        font-size: 0.75rem;
         color: var(--text-muted);
-        margin-top: 0.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
     }
     
     .selected-exercise {
@@ -212,8 +232,16 @@
         font-size: 0.875rem;
     }
     
+    .hint-icon {
+        color: var(--text-muted);
+    }
+    
     .hint-card.pr {
         background: var(--pr-gold-light);
+    }
+    
+    .hint-card.pr .hint-icon {
+        color: var(--gold);
     }
     
     .hint-card.info {

@@ -7,16 +7,16 @@
 <!-- Quick Actions -->
 <div class="quick-actions">
     <a href="{% url 'log_workout' %}" class="action-card primary">
-        <div class="action-icon">💪</div>
+        <div class="action-icon"><i class="fa-solid fa-dumbbell"></i></div>
         <div class="action-content">
             <span class="action-title">Start Workout</span>
             <span class="action-sub">Log your session</span>
         </div>
-        <svg class="action-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        <i class="fa-solid fa-arrow-right action-arrow"></i>
     </a>
     
     <a href="{% url 'calendar' %}" class="action-card">
-        <div class="action-icon">📅</div>
+        <div class="action-icon"><i class="fa-solid fa-calendar-days"></i></div>
         <div class="action-content">
             <span class="action-title">Calendar</span>
             <span class="action-sub">{{ this_week }} this week</span>
@@ -24,7 +24,7 @@
     </a>
     
     <a href="{% url 'charts' %}" class="action-card">
-        <div class="action-icon">📊</div>
+        <div class="action-icon"><i class="fa-solid fa-chart-line"></i></div>
         <div class="action-content">
             <span class="action-title">Analytics</span>
             <span class="action-sub">View progress</span>
@@ -36,7 +36,7 @@
 <div class="stats-grid">
     <div class="stat-box">
         <div class="stat-header">
-            <span class="stat-icon blue">🔥</span>
+            <span class="stat-icon fire"><i class="fa-solid fa-fire-flame-curved"></i></span>
             <span class="stat-label">Streak</span>
         </div>
         <div class="stat-number">{{ streak }}</div>
@@ -45,7 +45,7 @@
     
     <div class="stat-box">
         <div class="stat-header">
-            <span class="stat-icon green">📈</span>
+            <span class="stat-icon green"><i class="fa-solid fa-weight-hanging"></i></span>
             <span class="stat-label">Weekly Volume</span>
         </div>
         <div class="stat-number">{{ weekly_volume|floatformat:0 }}</div>
@@ -54,7 +54,7 @@
     
     <div class="stat-box">
         <div class="stat-header">
-            <span class="stat-icon gold">🏆</span>
+            <span class="stat-icon gold"><i class="fa-solid fa-trophy"></i></span>
             <span class="stat-label">PRs</span>
         </div>
         <div class="stat-number">{{ personal_bests|length }}</div>
@@ -63,7 +63,7 @@
     
     <div class="stat-box">
         <div class="stat-header">
-            <span class="stat-icon purple">⚖️</span>
+            <span class="stat-icon purple"><i class="fa-solid fa-scale-balanced"></i></span>
             <span class="stat-label">Body Weight</span>
         </div>
         <div class="stat-number">{% if latest_weight %}{{ latest_weight.weight }}{% else %}--{% endif %}</div>
@@ -76,8 +76,8 @@
     <!-- Recent Workouts -->
     <div class="content-card">
         <div class="card-header">
-            <h3>Recent Workouts</h3>
-            <a href="{% url 'history' %}" class="link-btn">View all</a>
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> Recent Workouts</h3>
+            <a href="{% url 'history' %}" class="link-btn">View all <i class="fa-solid fa-arrow-right"></i></a>
         </div>
         
         {% if recent_workouts %}
@@ -115,7 +115,7 @@
         <!-- Top PRs -->
         <div class="content-card">
             <div class="card-header">
-                <h3>Top PRs</h3>
+                <h3><i class="fa-solid fa-medal"></i> Top PRs</h3>
                 <a href="{% url 'personal_bests' %}" class="link-btn">All</a>
             </div>
             
@@ -143,7 +143,7 @@
         <!-- Active Goals -->
         <div class="content-card">
             <div class="card-header">
-                <h3>Goals</h3>
+                <h3><i class="fa-solid fa-bullseye"></i> Goals</h3>
                 <a href="{% url 'goals' %}" class="link-btn">All</a>
             </div>
             
@@ -163,7 +163,7 @@
             </div>
             {% else %}
             <div class="empty-text">
-                <a href="{% url 'goals' %}">Set your first goal →</a>
+                <a href="{% url 'goals' %}">Set your first goal <i class="fa-solid fa-arrow-right"></i></a>
             </div>
             {% endif %}
         </div>
@@ -183,7 +183,7 @@
         display: flex;
         align-items: center;
         gap: 1rem;
-        padding: 1.25rem;
+        padding: 1.25rem 1.5rem;
         background: var(--bg-card);
         border: 1px solid var(--border);
         border-radius: var(--radius-lg);
@@ -217,6 +217,7 @@
         justify-content: center;
         background: rgba(255,255,255,0.1);
         border-radius: var(--radius);
+        flex-shrink: 0;
     }
     
     .action-card:not(.primary) .action-icon {
@@ -225,6 +226,7 @@
     
     .action-content {
         flex: 1;
+        min-width: 0;
     }
     
     .action-title {
@@ -240,6 +242,7 @@
     
     .action-arrow {
         opacity: 0.7;
+        flex-shrink: 0;
     }
     
     /* Stats Grid */
@@ -265,19 +268,19 @@
     }
     
     .stat-icon {
-        font-size: 1rem;
-        width: 28px;
-        height: 28px;
+        font-size: 0.875rem;
+        width: 32px;
+        height: 32px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 6px;
+        border-radius: 8px;
     }
     
-    .stat-icon.blue { background: rgba(59, 130, 246, 0.15); }
-    .stat-icon.green { background: rgba(16, 185, 129, 0.15); }
-    .stat-icon.gold { background: rgba(251, 191, 36, 0.15); }
-    .stat-icon.purple { background: rgba(139, 92, 246, 0.15); }
+    .stat-icon.fire { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+    .stat-icon.green { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+    .stat-icon.gold { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+    .stat-icon.purple { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
     
     .stat-label {
         font-size: 0.75rem;
