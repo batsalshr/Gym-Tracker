@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Charts - IronLog{% endblock %}
+{% block title %}Analytics - IronLog{% endblock %}
 {% block page_title %}Analytics{% endblock %}
 
 {% block header_actions %}
@@ -72,6 +72,88 @@
         </div>
     </div>
     
+    <!-- Training Insights -->
+    <div class="card insights-card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fa-solid fa-lightbulb"></i> Training Insights</h3>
+        </div>
+        
+        <div class="insights-content">
+            <!-- This Week vs Last Week -->
+            <div class="insight-block">
+                <div class="insight-label">
+                    <i class="fa-solid fa-calendar-week"></i>
+                    This Week
+                </div>
+                <div class="insight-comparison">
+                    <div class="comparison-item">
+                        <span class="comp-value">{{ this_week_workouts }}</span>
+                        <span class="comp-label">workouts</span>
+                        {% if this_week_workouts > last_week_workouts %}
+                        <span class="comp-badge up"><i class="fa-solid fa-arrow-up"></i></span>
+                        {% elif this_week_workouts < last_week_workouts %}
+                        <span class="comp-badge down"><i class="fa-solid fa-arrow-down"></i></span>
+                        {% endif %}
+                    </div>
+                    <div class="comparison-item">
+                        <span class="comp-value">{{ this_week_volume|floatformat:0 }}</span>
+                        <span class="comp-label">kg volume</span>
+                        {% if this_week_volume > last_week_volume %}
+                        <span class="comp-badge up"><i class="fa-solid fa-arrow-up"></i></span>
+                        {% elif this_week_volume < last_week_volume %}
+                        <span class="comp-badge down"><i class="fa-solid fa-arrow-down"></i></span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Streak -->
+            <div class="insight-row">
+                <div class="insight-item">
+                    <div class="insight-icon fire">
+                        <i class="fa-solid fa-fire"></i>
+                    </div>
+                    <div class="insight-data">
+                        <span class="insight-value">{{ current_streak }}</span>
+                        <span class="insight-text">Day Streak</span>
+                    </div>
+                </div>
+                
+                <div class="insight-item">
+                    <div class="insight-icon calendar">
+                        <i class="fa-solid fa-calendar-day"></i>
+                    </div>
+                    <div class="insight-data">
+                        <span class="insight-value">{{ best_day|slice:":3" }}</span>
+                        <span class="insight-text">Best Day</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Favorite Exercise -->
+            {% if fav_exercise %}
+            <div class="insight-highlight">
+                <div class="highlight-icon">
+                    <i class="fa-solid fa-heart"></i>
+                </div>
+                <div class="highlight-content">
+                    <span class="highlight-label">Favorite Exercise</span>
+                    <span class="highlight-value">{{ fav_exercise }}</span>
+                    <span class="highlight-meta">{{ fav_exercise_count }} sets logged</span>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Avg Duration -->
+            {% if avg_duration %}
+            <div class="insight-footer">
+                <i class="fa-solid fa-clock"></i>
+                <span>Avg. workout: <strong>{{ avg_duration|floatformat:0 }} min</strong></span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
     <!-- Body Weight -->
     {% if bodyweight_data %}
     <div class="card chart-card">
@@ -85,37 +167,64 @@
     {% endif %}
 </div>
 
-<!-- Top PRs Table -->
-<div class="card">
+<!-- Personal Records Section -->
+<div class="card pr-section">
     <div class="card-header">
         <h3 class="card-title"><i class="fa-solid fa-trophy"></i> Personal Records</h3>
-        <a href="{% url 'personal_bests' %}" class="card-link"><i class="fa-solid fa-arrow-right"></i> View All</a>
+        <a href="{% url 'personal_bests' %}" class="btn btn-ghost btn-sm">
+            View All <i class="fa-solid fa-arrow-right"></i>
+        </a>
     </div>
     
     {% if pr_data %}
-    <div class="pr-table">
-        <div class="pr-table-header">
-            <span class="col-exercise"><i class="fa-solid fa-dumbbell"></i> Exercise</span>
-            <span class="col-weight"><i class="fa-solid fa-weight-hanging"></i> Weight</span>
-            <span class="col-reps"><i class="fa-solid fa-rotate"></i> Reps</span>
-            <span class="col-date"><i class="fa-regular fa-calendar"></i> Date</span>
-        </div>
+    <div class="pr-grid">
         {% for pr in pr_data %}
-        <div class="pr-table-row">
-            <span class="col-exercise">
-                <i class="fa-solid fa-medal" style="color: {% if forloop.first %}#fbbf24{% elif forloop.counter == 2 %}#94a3b8{% elif forloop.counter == 3 %}#b45309{% else %}var(--text-muted){% endif %};"></i>
-                {{ pr.exercise }}
-            </span>
-            <span class="col-weight text-accent">{{ pr.weight }} kg</span>
-            <span class="col-reps">{{ pr.reps }}</span>
-            <span class="col-date text-muted">{{ pr.date }}</span>
+        <div class="pr-card {% if forloop.first %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
+            <div class="pr-rank">
+                {% if forloop.first %}
+                <i class="fa-solid fa-crown"></i>
+                {% elif forloop.counter == 2 %}
+                <i class="fa-solid fa-medal"></i>
+                {% elif forloop.counter == 3 %}
+                <i class="fa-solid fa-award"></i>
+                {% else %}
+                <span class="rank-number">#{{ forloop.counter }}</span>
+                {% endif %}
+            </div>
+            <div class="pr-content">
+                <h4 class="pr-exercise">{{ pr.exercise }}</h4>
+                <div class="pr-stats">
+                    <span class="pr-weight">
+                        <i class="fa-solid fa-weight-hanging"></i>
+                        {{ pr.weight }} kg
+                    </span>
+                    <span class="pr-reps">
+                        <i class="fa-solid fa-rotate"></i>
+                        {{ pr.reps }} reps
+                    </span>
+                </div>
+                <div class="pr-date">
+                    <i class="fa-regular fa-calendar"></i>
+                    {{ pr.date }}
+                </div>
+            </div>
+            <div class="pr-badge">
+                <span class="e1rm">{{ pr.e1rm|floatformat:0 }}</span>
+                <span class="e1rm-label">Est. 1RM</span>
+            </div>
         </div>
         {% endfor %}
     </div>
     {% else %}
-    <div class="empty-state">
-        <div class="empty-state-icon"><i class="fa-solid fa-dumbbell"></i></div>
-        <p>Complete workouts to see your PRs</p>
+    <div class="empty-pr">
+        <div class="empty-icon">
+            <i class="fa-solid fa-dumbbell"></i>
+        </div>
+        <h4>No Personal Records Yet</h4>
+        <p>Complete workouts to start tracking your PRs</p>
+        <a href="{% url 'log_workout' %}" class="btn btn-primary">
+            <i class="fa-solid fa-plus"></i> Log Workout
+        </a>
     </div>
     {% endif %}
 </div>
@@ -200,102 +309,387 @@
         position: relative;
     }
     
-    .card-link {
-        font-size: 0.8125rem;
-        color: var(--accent);
-        text-decoration: none;
+    /* Training Insights Card */
+    .insights-card {
+        min-height: 300px;
+    }
+    
+    .insights-card .card-header h3 i {
+        color: #fbbf24;
+    }
+    
+    .insights-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .insight-block {
+        background: rgba(15, 23, 42, 0.5);
+        border-radius: 10px;
+        padding: 0.875rem;
+    }
+    
+    .insight-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.625rem;
         display: flex;
         align-items: center;
         gap: 0.375rem;
-        transition: color 0.2s;
     }
     
-    .card-link:hover {
-        color: var(--accent-hover);
+    .insight-label i {
+        font-size: 0.6875rem;
     }
     
-    .pr-table {
+    .insight-comparison {
+        display: flex;
+        gap: 1.5rem;
+    }
+    
+    .comparison-item {
+        display: flex;
+        align-items: baseline;
+        gap: 0.375rem;
+    }
+    
+    .comp-value {
+        font-size: 1.375rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    .comp-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .comp-badge {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.5rem;
+        margin-left: 0.25rem;
+    }
+    
+    .comp-badge.up {
+        background: rgba(34, 197, 94, 0.2);
+        color: #22c55e;
+    }
+    
+    .comp-badge.down {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+    }
+    
+    .insight-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+    
+    .insight-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: rgba(15, 23, 42, 0.5);
+        border-radius: 10px;
+        padding: 0.75rem;
+    }
+    
+    .insight-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+    
+    .insight-icon.fire {
+        background: rgba(249, 115, 22, 0.15);
+        color: #f97316;
+    }
+    
+    .insight-icon.calendar {
+        background: rgba(59, 130, 246, 0.15);
+        color: #3b82f6;
+    }
+    
+    .insight-data {
         display: flex;
         flex-direction: column;
     }
     
-    .pr-table-header {
-        display: grid;
-        grid-template-columns: 1fr 100px 80px 100px;
-        gap: 1rem;
-        padding: 0.75rem 1rem;
-        background: var(--bg-main);
-        border-radius: var(--radius);
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        color: var(--text-muted);
-        margin-bottom: 0.5rem;
+    .insight-value {
+        font-size: 1.125rem;
+        font-weight: 700;
+        line-height: 1.2;
     }
     
-    .pr-table-header span {
+    .insight-text {
+        font-size: 0.6875rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+    
+    .insight-highlight {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(139, 92, 246, 0.1));
+        border: 1px solid rgba(236, 72, 153, 0.2);
+        border-radius: 10px;
+        padding: 0.875rem;
+    }
+    
+    .highlight-icon {
+        width: 40px;
+        height: 40px;
+        background: rgba(236, 72, 153, 0.15);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ec4899;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+    
+    .highlight-content {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+    
+    .highlight-label {
+        font-size: 0.625rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    
+    .highlight-value {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .highlight-meta {
+        font-size: 0.6875rem;
+        color: var(--text-muted);
+    }
+    
+    .insight-footer {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid var(--border);
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+    
+    .insight-footer i {
+        font-size: 0.75rem;
+    }
+    
+    .insight-footer strong {
+        color: var(--text-primary);
+    }
+    
+    /* PR Section */
+    .pr-section .card-header {
+        margin-bottom: 1.25rem;
+    }
+    
+    .pr-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+    }
+    
+    .pr-card {
+        display: flex;
+        align-items: stretch;
+        background: linear-gradient(145deg, rgba(30, 41, 59, 0.5), rgba(15, 23, 42, 0.7));
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.2s;
+    }
+    
+    .pr-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    .pr-card.gold {
+        border-color: rgba(251, 191, 36, 0.4);
+        background: linear-gradient(145deg, rgba(251, 191, 36, 0.08), rgba(15, 23, 42, 0.9));
+    }
+    
+    .pr-card.silver {
+        border-color: rgba(148, 163, 184, 0.4);
+        background: linear-gradient(145deg, rgba(148, 163, 184, 0.08), rgba(15, 23, 42, 0.9));
+    }
+    
+    .pr-card.bronze {
+        border-color: rgba(180, 83, 9, 0.4);
+        background: linear-gradient(145deg, rgba(180, 83, 9, 0.08), rgba(15, 23, 42, 0.9));
+    }
+    
+    .pr-rank {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        min-width: 50px;
+        font-size: 1.25rem;
+    }
+    
+    .pr-card.gold .pr-rank { color: #fbbf24; }
+    .pr-card.silver .pr-rank { color: #94a3b8; }
+    .pr-card.bronze .pr-rank { color: #b45309; }
+    
+    .rank-number {
+        font-size: 0.875rem;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+    
+    .pr-content {
+        flex: 1;
+        padding: 1rem 0.75rem;
+        min-width: 0;
+    }
+    
+    .pr-exercise {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        margin: 0 0 0.5rem;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .pr-stats {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 0.375rem;
+    }
+    
+    .pr-stats span {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.8125rem;
+    }
+    
+    .pr-weight {
+        color: var(--accent);
+        font-weight: 600;
+    }
+    
+    .pr-weight i, .pr-reps i {
+        font-size: 0.6875rem;
+        opacity: 0.7;
+    }
+    
+    .pr-reps {
+        color: var(--text-secondary);
+    }
+    
+    .pr-date {
+        font-size: 0.75rem;
+        color: var(--text-muted);
         display: flex;
         align-items: center;
         gap: 0.375rem;
     }
     
-    .pr-table-header i {
-        font-size: 0.6875rem;
+    .pr-date i {
+        font-size: 0.625rem;
     }
     
-    .pr-table-row {
-        display: grid;
-        grid-template-columns: 1fr 100px 80px 100px;
-        gap: 1rem;
-        padding: 0.875rem 1rem;
-        border-bottom: 1px solid var(--border);
-        font-size: 0.875rem;
+    .pr-badge {
+        display: flex;
+        flex-direction: column;
         align-items: center;
+        justify-content: center;
+        padding: 0.75rem;
+        background: rgba(59, 130, 246, 0.1);
+        border-left: 1px solid var(--border);
+        min-width: 70px;
     }
     
-    .pr-table-row:last-child {
-        border-bottom: none;
+    .pr-card.gold .pr-badge { background: rgba(251, 191, 36, 0.1); }
+    .pr-card.silver .pr-badge { background: rgba(148, 163, 184, 0.1); }
+    .pr-card.bronze .pr-badge { background: rgba(180, 83, 9, 0.1); }
+    
+    .e1rm {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-primary);
     }
     
-    .pr-table-row:hover {
-        background: rgba(59, 130, 246, 0.05);
+    .pr-card.gold .e1rm { color: #fbbf24; }
+    .pr-card.silver .e1rm { color: #94a3b8; }
+    .pr-card.bronze .e1rm { color: #b45309; }
+    
+    .e1rm-label {
+        font-size: 0.5625rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
     }
     
-    .col-exercise {
+    /* Empty State */
+    .empty-pr {
+        text-align: center;
+        padding: 3rem 2rem;
+    }
+    
+    .empty-pr .empty-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(99, 102, 241, 0.1));
+        border-radius: 20px;
         display: flex;
         align-items: center;
-        gap: 0.625rem;
-        font-weight: 500;
+        justify-content: center;
+        margin: 0 auto 1.25rem;
     }
     
-    .col-weight {
-        font-weight: 600;
-        font-family: var(--font-mono);
-    }
-    
-    .text-accent {
-        color: var(--accent);
-    }
-    
-    .text-muted {
-        color: var(--text-muted);
-    }
-    
-    .empty-state {
-        text-align: center;
-        padding: 2.5rem;
-    }
-    
-    .empty-state-icon {
+    .empty-pr .empty-icon i {
         font-size: 2rem;
-        color: var(--text-muted);
-        margin-bottom: 0.75rem;
-        opacity: 0.4;
+        color: var(--accent);
+        opacity: 0.6;
     }
     
-    .empty-state p {
+    .empty-pr h4 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin: 0 0 0.5rem;
+    }
+    
+    .empty-pr p {
         color: var(--text-muted);
-        margin: 0;
+        margin: 0 0 1.5rem;
+        font-size: 0.9375rem;
     }
     
     @media (max-width: 1024px) {
@@ -313,13 +707,20 @@
             grid-template-columns: 1fr;
         }
         
-        .pr-table-header,
-        .pr-table-row {
-            grid-template-columns: 1fr 80px 60px;
+        .pr-grid {
+            grid-template-columns: 1fr;
         }
         
-        .col-date {
-            display: none;
+        .pr-card {
+            flex-wrap: wrap;
+        }
+        
+        .pr-badge {
+            width: 100%;
+            flex-direction: row;
+            gap: 0.5rem;
+            border-left: none;
+            border-top: 1px solid var(--border);
         }
     }
 </style>

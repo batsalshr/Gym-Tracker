@@ -238,6 +238,28 @@
     
     <!-- Right Column -->
     <div class="right-col">
+        <!-- How To Card -->
+        {% if exercise.description or instructions %}
+        <div class="card how-to-card">
+            <h3 class="card-title"><i class="fa-solid fa-book-open"></i> How To Perform</h3>
+            
+            {% if exercise.description %}
+            <p class="exercise-description">{{ exercise.description }}</p>
+            {% endif %}
+            
+            {% if instructions %}
+            <div class="steps-list">
+                {% for step in instructions %}
+                <div class="step-item">
+                    <span class="step-number">{{ forloop.counter }}</span>
+                    <span class="step-text">{{ step }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
         <!-- Exercise Info Card -->
         <div class="card">
             <h3 class="card-title"><i class="fa-solid fa-circle-info"></i> Exercise Info</h3>
@@ -555,6 +577,54 @@
     font-size: 0.9375rem;
     font-weight: 600;
     color: var(--text-primary);
+}
+
+/* How To Card */
+.how-to-card {
+    background: linear-gradient(145deg, rgba(34, 197, 94, 0.05), rgba(15, 23, 42, 0.9));
+    border-color: rgba(34, 197, 94, 0.2);
+}
+
+.exercise-description {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.steps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+.step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.step-number {
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.step-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    padding-top: 0.125rem;
 }
 
 .effectiveness-row {

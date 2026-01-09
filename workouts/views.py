@@ -692,6 +692,7 @@ class ProgressView(LoginRequiredMixin, View):
             'muscles_worked': muscles_worked,
             'movement_type': movement_type,
             'effectiveness': effectiveness,
+            'instructions': exercise.get_instructions_list(),
         }
         return render(request, 'workouts/exercise_detail.html', context)
 
@@ -1220,14 +1221,25 @@ class ChartsView(LoginRequiredMixin, View):
         for exercise in exercises_with_sets:
             pb = exercise.get_personal_best(user)
             if pb:
+                # Calculate estimated 1RM using Brzycki formula
+                weight = float(pb.weight)
+                reps = pb.reps
+                if reps == 1:
+                    e1rm = weight
+                elif reps <= 12:
+                    e1rm = weight * (36 / (37 - reps))
+                else:
+                    e1rm = weight * 1.3  # Rough estimate for high reps
+                
                 pr_data.append({
                     'exercise': exercise.name,
-                    'weight': float(pb.weight),
-                    'reps': pb.reps,
+                    'weight': weight,
+                    'reps': reps,
                     'date': pb.workout.date.strftime('%b %d'),
+                    'e1rm': e1rm,
                 })
         
-        pr_data = sorted(pr_data, key=lambda x: x['weight'], reverse=True)[:10]
+        pr_data = sorted(pr_data, key=lambda x: x['e1rm'], reverse=True)[:10]
         
         # Body weight trend
         bodyweight_data = [
@@ -1240,6 +1252,55 @@ class ChartsView(LoginRequiredMixin, View):
         total_volume = sum(w.get_total_volume() for w in Workout.objects.filter(user=user))
         total_sets = Set.objects.filter(workout__user=user).count()
         
+        # Training insights
+        this_week_start = today - timedelta(days=today.weekday())
+        last_week_start = this_week_start - timedelta(days=7)
+        
+        this_week_workouts = Workout.objects.filter(user=user, date__gte=this_week_start).count()
+        last_week_workouts = Workout.objects.filter(user=user, date__gte=last_week_start, date__lt=this_week_start).count()
+        
+        this_week_volume = sum(w.get_total_volume() for w in Workout.objects.filter(user=user, date__gte=this_week_start))
+        last_week_volume = sum(w.get_total_volume() for w in Workout.objects.filter(user=user, date__gte=last_week_start, date__lt=this_week_start))
+        
+        # Streak calculation
+        current_streak = 0
+        check_date = today
+        while True:
+            if Workout.objects.filter(user=user, date=check_date).exists():
+                current_streak += 1
+                check_date -= timedelta(days=1)
+            elif check_date == today:
+                # Allow for today not having a workout yet
+                check_date -= timedelta(days=1)
+            else:
+                break
+        
+        # Best day of week
+        from collections import Counter
+        day_counts = Counter()
+        for workout in Workout.objects.filter(user=user):
+            day_counts[workout.date.strftime('%A')] += 1
+        best_day = day_counts.most_common(1)[0] if day_counts else ('--', 0)
+        
+       # Average workout duration (if tracked)
+        avg_duration = None
+        workouts_with_duration = Workout.objects.filter(
+            user=user,
+            duration_minutes__isnull=False
+        )
+
+        if workouts_with_duration.exists():
+            avg_duration = (
+                sum(w.duration_minutes or 0 for w in workouts_with_duration)
+                / workouts_with_duration.count()
+        )
+
+        # Favorite exercise (most sets logged)
+        from django.db.models import Count
+        fav_exercise = Set.objects.filter(workout__user=user).values('exercise__name').annotate(
+            count=Count('id')
+        ).order_by('-count').first()
+        
         context = {
             'volume_data': volume_data,
             'workout_count_data': workout_count_data,
@@ -1249,6 +1310,17 @@ class ChartsView(LoginRequiredMixin, View):
             'total_workouts': total_workouts,
             'total_volume': total_volume,
             'total_sets': total_sets,
+            # New insights
+            'this_week_workouts': this_week_workouts,
+            'last_week_workouts': last_week_workouts,
+            'this_week_volume': this_week_volume,
+            'last_week_volume': last_week_volume,
+            'current_streak': current_streak,
+            'best_day': best_day[0],
+            'best_day_count': best_day[1],
+            'avg_duration': avg_duration,
+            'fav_exercise': fav_exercise['exercise__name'] if fav_exercise else None,
+            'fav_exercise_count': fav_exercise['count'] if fav_exercise else 0,
         }
         return render(request, 'workouts/charts.html', context)
 

@@ -95,6 +95,8 @@ class Exercise(models.Model):
     name = models.CharField(max_length=100)
     muscle_group = models.CharField(max_length=20, choices=MUSCLE_GROUPS)
     equipment = models.CharField(max_length=50, blank=True, default='')
+    description = models.TextField(blank=True, default='')
+    instructions = models.TextField(blank=True, default='')  # Store as JSON list
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)  # null = shared exercise
     
     class Meta:
@@ -106,6 +108,16 @@ class Exercise(models.Model):
     def is_dumbbell(self):
         """Check if exercise uses dumbbells."""
         return self.equipment.lower() == 'dumbbell' if self.equipment else False
+    
+    def get_instructions_list(self):
+        """Get instructions as a list."""
+        if not self.instructions:
+            return []
+        try:
+            import json
+            return json.loads(self.instructions)
+        except:
+            return [self.instructions]
     
     def get_personal_best(self, user=None):
         """Get the heaviest weight lifted for this exercise."""

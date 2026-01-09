@@ -4,61 +4,101 @@
 {% block page_title %}Workout History{% endblock %}
 
 {% block header_actions %}
-<a href="{% url 'log_workout' %}" class="btn btn-primary">+ Log Workout</a>
+<span class="badge badge-primary"><i class="fa-solid fa-clock-rotate-left"></i> {{ workouts|length }} Workouts</span>
 {% endblock %}
 
 {% block content %}
 <!-- Filter Bar -->
 <div class="filter-bar">
     <form method="get" class="filter-form">
-        <select name="muscle" class="form-control" onchange="this.form.submit()">
-            <option value="">All Muscles</option>
-            {% for value, label in muscle_groups %}
-            <option value="{{ value }}" {% if filters.muscle == value %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-        </select>
+        <div class="filter-select">
+            <i class="fa-solid fa-filter"></i>
+            <select name="muscle" class="form-control" onchange="this.form.submit()">
+                <option value="">All Muscles</option>
+                {% for value, label in muscle_groups %}
+                <option value="{{ value }}" {% if filters.muscle == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
         
-        <select name="sort" class="form-control" onchange="this.form.submit()">
-            <option value="-date" {% if filters.sort == '-date' %}selected{% endif %}>Newest</option>
-            <option value="date" {% if filters.sort == 'date' %}selected{% endif %}>Oldest</option>
-            <option value="volume" {% if filters.sort == 'volume' %}selected{% endif %}>Volume</option>
-        </select>
+        <div class="filter-select">
+            <i class="fa-solid fa-arrow-down-wide-short"></i>
+            <select name="sort" class="form-control" onchange="this.form.submit()">
+                <option value="-date" {% if filters.sort == '-date' %}selected{% endif %}>Newest First</option>
+                <option value="date" {% if filters.sort == 'date' %}selected{% endif %}>Oldest First</option>
+                <option value="volume" {% if filters.sort == 'volume' %}selected{% endif %}>By Volume</option>
+            </select>
+        </div>
         
         {% if filters.muscle or filters.sort != '-date' %}
-        <a href="{% url 'history' %}" class="btn btn-ghost btn-sm">Clear</a>
+        <a href="{% url 'history' %}" class="btn btn-ghost btn-sm">
+            <i class="fa-solid fa-xmark"></i> Clear
+        </a>
         {% endif %}
     </form>
     
-    <span class="results-count">{{ workouts|length }} workout{% if workouts|length != 1 %}s{% endif %}</span>
+    <a href="{% url 'log_workout' %}" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i> Log Workout
+    </a>
 </div>
 
 <!-- Workouts -->
 {% if workouts %}
 <div class="workouts-list">
     {% for workout in workouts %}
-    <div class="workout-item">
-        <div class="workout-date">
-            <div class="workout-date-day">{{ workout.date|date:"d" }}</div>
-            <div class="workout-date-month">{{ workout.date|date:"M" }}</div>
+    <div class="workout-card">
+        <div class="workout-date-badge">
+            <span class="date-day">{{ workout.date|date:"d" }}</span>
+            <span class="date-month">{{ workout.date|date:"M" }}</span>
+            <span class="date-year">{{ workout.date|date:"Y" }}</span>
         </div>
-        <a href="{% url 'workout_detail' workout.id %}" class="workout-info">
-            <div class="workout-title">{{ workout.get_muscle_groups_display }}</div>
-            <div class="workout-exercises">
-                {% for name, data in workout.get_exercises_summary.items %}{{ name }}{% if not forloop.last %} • {% endif %}{% empty %}No exercises{% endfor %}
+        
+        <a href="{% url 'workout_detail' workout.id %}" class="workout-content">
+            <div class="workout-header">
+                <h3 class="workout-title">
+                    <i class="fa-solid fa-dumbbell"></i>
+                    {{ workout.get_muscle_groups_display|default:"Workout" }}
+                </h3>
+                {% if workout.get_training_type_display %}
+                <span class="workout-type">{{ workout.get_training_type_display }}</span>
+                {% endif %}
             </div>
-            <div class="workout-meta">
-                <span><strong>{{ workout.get_total_sets }}</strong> sets</span>
-                <span><strong>{{ workout.get_total_volume|floatformat:0 }}</strong> kg</span>
+            
+            <div class="workout-exercises">
+                {% for name, data in workout.get_exercises_summary.items %}
+                <span class="exercise-tag">{{ name }}</span>
+                {% empty %}
+                <span class="no-exercises">No exercises logged</span>
+                {% endfor %}
+            </div>
+            
+            <div class="workout-stats">
+                <div class="stat">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <span class="stat-value">{{ workout.get_total_sets }}</span>
+                    <span class="stat-label">Sets</span>
+                </div>
+                <div class="stat">
+                    <i class="fa-solid fa-weight-hanging"></i>
+                    <span class="stat-value">{{ workout.get_total_volume|floatformat:0 }}</span>
+                    <span class="stat-label">kg</span>
+                </div>
+                <div class="stat">
+                    <i class="fa-solid fa-clock"></i>
+                    <span class="stat-value">{{ workout.duration|default:"--" }}</span>
+                    <span class="stat-label">min</span>
+                </div>
             </div>
         </a>
+        
         <div class="workout-actions">
-            <a href="{% url 'add_exercises' workout.id %}" class="btn btn-ghost btn-icon" title="Edit">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            <a href="{% url 'add_exercises' workout.id %}" class="action-btn edit" title="Edit workout">
+                <i class="fa-solid fa-pen"></i>
             </a>
             <form method="post" action="{% url 'delete_workout' workout.id %}" style="display:inline;">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-ghost btn-icon" onclick="return confirm('Delete?')" title="Delete">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <button type="submit" class="action-btn delete" onclick="return confirm('Delete this workout?')" title="Delete workout">
+                    <i class="fa-solid fa-trash"></i>
                 </button>
             </form>
         </div>
@@ -66,13 +106,15 @@
     {% endfor %}
 </div>
 {% else %}
-<div class="card">
-    <div class="empty-state">
-        <div class="empty-icon">📋</div>
-        <h3>No workouts yet</h3>
-        <p>Start logging your progress!</p>
-        <a href="{% url 'log_workout' %}" class="btn btn-primary">Log Workout</a>
+<div class="empty-card">
+    <div class="empty-icon">
+        <i class="fa-solid fa-clipboard-list"></i>
     </div>
+    <h3>No workouts yet</h3>
+    <p>Start logging your progress!</p>
+    <a href="{% url 'log_workout' %}" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i> Log Workout
+    </a>
 </div>
 {% endif %}
 
@@ -83,38 +125,268 @@
         justify-content: space-between;
         gap: 1rem;
         margin-bottom: 1.5rem;
+        flex-wrap: wrap;
     }
     
     .filter-form {
         display: flex;
         align-items: center;
         gap: 0.75rem;
+        flex-wrap: wrap;
     }
     
-    .filter-form .form-control {
-        width: auto;
-        min-width: 140px;
+    .filter-select {
+        position: relative;
+        display: flex;
+        align-items: center;
     }
     
-    .results-count {
-        font-size: 0.875rem;
+    .filter-select i {
+        position: absolute;
+        left: 0.875rem;
         color: var(--text-muted);
+        font-size: 0.75rem;
+        pointer-events: none;
+        z-index: 1;
     }
     
+    .filter-select .form-control {
+        padding-left: 2.25rem;
+        min-width: 160px;
+        background: var(--bg-card);
+    }
+    
+    /* Workout Cards */
     .workouts-list {
         display: flex;
         flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .workout-card {
+        display: flex;
+        align-items: stretch;
+        background: linear-gradient(145deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        transition: all 0.2s;
+    }
+    
+    .workout-card:hover {
+        border-color: var(--accent);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    }
+    
+    .workout-date-badge {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        background: linear-gradient(135deg, var(--accent), #6366f1);
+        min-width: 70px;
+        color: white;
+    }
+    
+    .date-day {
+        font-size: 1.75rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+    
+    .date-month {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        opacity: 0.9;
+    }
+    
+    .date-year {
+        font-size: 0.625rem;
+        opacity: 0.7;
+        margin-top: 0.125rem;
+    }
+    
+    .workout-content {
+        flex: 1;
+        padding: 1rem 1.25rem;
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        min-width: 0;
+    }
+    
+    .workout-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         gap: 0.75rem;
     }
     
-    .workout-info {
-        flex: 1;
-        min-width: 0;
-        text-decoration: none;
-        color: inherit;
+    .workout-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
     
-    @media (max-width: 640px) {
+    .workout-title i {
+        color: var(--accent);
+        font-size: 0.875rem;
+    }
+    
+    .workout-type {
+        font-size: 0.6875rem;
+        padding: 0.25rem 0.625rem;
+        background: rgba(59, 130, 246, 0.15);
+        color: var(--accent);
+        border-radius: 999px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+    
+    .workout-exercises {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+    }
+    
+    .exercise-tag {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        background: var(--bg-main);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text-secondary);
+    }
+    
+    .no-exercises {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+        font-style: italic;
+    }
+    
+    .workout-stats {
+        display: flex;
+        gap: 1.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid var(--border);
+        margin-top: auto;
+    }
+    
+    .workout-stats .stat {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+    
+    .workout-stats .stat i {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .workout-stats .stat-value {
+        font-weight: 700;
+        font-size: 0.9375rem;
+        color: var(--text-primary);
+    }
+    
+    .workout-stats .stat-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .workout-actions {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 1rem;
+        border-left: 1px solid var(--border);
+    }
+    
+    .action-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.875rem;
+        text-decoration: none;
+    }
+    
+    .action-btn.edit {
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--accent);
+    }
+    
+    .action-btn.edit:hover {
+        background: var(--accent);
+        color: white;
+    }
+    
+    .action-btn.delete {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+    
+    .action-btn.delete:hover {
+        background: #ef4444;
+        color: white;
+    }
+    
+    /* Empty State */
+    .empty-card {
+        background: linear-gradient(145deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 4rem 2rem;
+        text-align: center;
+    }
+    
+    .empty-card .empty-icon {
+        width: 80px;
+        height: 80px;
+        background: rgba(59, 130, 246, 0.1);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+    }
+    
+    .empty-card .empty-icon i {
+        font-size: 2rem;
+        color: var(--accent);
+        opacity: 0.7;
+    }
+    
+    .empty-card h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .empty-card p {
+        color: var(--text-muted);
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
         .filter-bar {
             flex-direction: column;
             align-items: stretch;
@@ -124,12 +396,38 @@
             width: 100%;
         }
         
-        .filter-form .form-control {
+        .filter-select {
             flex: 1;
         }
         
-        .results-count {
-            text-align: center;
+        .filter-select .form-control {
+            width: 100%;
+            min-width: unset;
+        }
+        
+        .workout-card {
+            flex-wrap: wrap;
+        }
+        
+        .workout-date-badge {
+            flex-direction: row;
+            width: 100%;
+            min-width: unset;
+            padding: 0.75rem 1rem;
+            gap: 0.5rem;
+        }
+        
+        .date-day {
+            font-size: 1.25rem;
+        }
+        
+        .workout-actions {
+            flex-direction: row;
+            width: 100%;
+            justify-content: flex-end;
+            border-left: none;
+            border-top: 1px solid var(--border);
+            padding: 0.75rem 1rem;
         }
     }
 </style>
