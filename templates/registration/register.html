@@ -194,48 +194,53 @@
             font-size: 0.75rem;
         }
         
-        .divider {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin: 1.5rem 0;
-            color: #475569;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: rgba(71, 85, 105, 0.5);
-        }
-        
-        .id-preview {
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            border-radius: 10px;
-            padding: 1rem;
+        .name-preview {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(16, 185, 129, 0.05));
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            border-radius: 12px;
+            padding: 1.25rem;
             text-align: center;
             margin-bottom: 1.5rem;
         }
         
-        .id-preview-label {
+        .name-preview-label {
             font-size: 0.6875rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: #64748b;
-            margin-bottom: 0.375rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.375rem;
         }
         
-        .id-preview-value {
-            font-size: 1.25rem;
+        .name-preview-label i {
+            color: #22c55e;
+        }
+        
+        .name-preview-value {
+            font-size: 1.5rem;
             font-weight: 700;
-            color: #3b82f6;
-            font-family: monospace;
-            letter-spacing: 0.05em;
+            color: #22c55e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.625rem;
+            transition: all 0.2s;
+        }
+        
+        .name-preview-value .avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 700;
+            color: white;
         }
         
         .benefits {
@@ -304,9 +309,12 @@
         <div class="register-card">
             <h2 class="form-title"><i class="fa-solid fa-user-plus"></i> Create Account</h2>
             
-            <div class="id-preview">
-                <div class="id-preview-label"><i class="fa-solid fa-fingerprint"></i> Your Unique ID will be</div>
-                <div class="id-preview-value">IL-XXXXXX</div>
+            <div class="name-preview">
+                <div class="name-preview-label"><i class="fa-solid fa-eye"></i> You will be viewed as</div>
+                <div class="name-preview-value">
+                    <span class="avatar" id="preview-avatar">?</span>
+                    <span id="preview-name">Your Name</span>
+                </div>
             </div>
             
             {% if errors %}
@@ -323,15 +331,15 @@
                 {% csrf_token %}
                 
                 <div class="form-group">
-                    <label class="form-label"><i class="fa-solid fa-user"></i> Username</label>
-                    <input type="text" name="username" class="form-control" placeholder="Choose a username" value="{{ username|default:'' }}" required autofocus minlength="3">
-                    <div class="form-hint">At least 3 characters, unique to you</div>
+                    <label class="form-label"><i class="fa-solid fa-id-card"></i> Display Name</label>
+                    <input type="text" name="display_name" id="display-name" class="form-control" placeholder="How should we call you?" value="{{ display_name|default:'' }}" autofocus>
+                    <div class="form-hint">This is what others will see</div>
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label"><i class="fa-solid fa-id-card"></i> Display Name (optional)</label>
-                    <input type="text" name="display_name" class="form-control" placeholder="How should we call you?" value="{{ display_name|default:'' }}">
-                    <div class="form-hint">This appears on your profile</div>
+                    <label class="form-label"><i class="fa-solid fa-user"></i> Username</label>
+                    <input type="text" name="username" id="username" class="form-control" placeholder="Choose a username" value="{{ username|default:'' }}" required minlength="3">
+                    <div class="form-hint">At least 3 characters, used for login</div>
                 </div>
                 
                 <div class="form-group">
@@ -373,28 +381,35 @@
     </div>
     
     <script>
-        // Generate random preview ID
-        function randomID() {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let id = 'IL-';
-            for (let i = 0; i < 6; i++) {
-                id += chars.charAt(Math.floor(Math.random() * chars.length));
+        const displayNameInput = document.getElementById('display-name');
+        const usernameInput = document.getElementById('username');
+        const previewName = document.getElementById('preview-name');
+        const previewAvatar = document.getElementById('preview-avatar');
+        
+        function getInitials(name) {
+            if (!name || name.trim() === '') return '?';
+            const parts = name.trim().split(' ');
+            if (parts.length >= 2) {
+                return (parts[0][0] + parts[1][0]).toUpperCase();
             }
-            return id;
+            return name.slice(0, 2).toUpperCase();
         }
         
-        // Update preview on page load
-        document.querySelector('.id-preview-value').textContent = randomID();
+        function updatePreview() {
+            const displayName = displayNameInput.value.trim();
+            const username = usernameInput.value.trim();
+            
+            // Use display name if available, otherwise username, otherwise placeholder
+            const name = displayName || username || 'Your Name';
+            previewName.textContent = name;
+            previewAvatar.textContent = getInitials(name);
+        }
         
-        // Animate ID preview periodically
-        setInterval(() => {
-            const preview = document.querySelector('.id-preview-value');
-            preview.style.opacity = '0.5';
-            setTimeout(() => {
-                preview.textContent = randomID();
-                preview.style.opacity = '1';
-            }, 150);
-        }, 3000);
+        displayNameInput.addEventListener('input', updatePreview);
+        usernameInput.addEventListener('input', updatePreview);
+        
+        // Initial update
+        updatePreview();
     </script>
 </body>
 </html>
