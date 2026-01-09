@@ -2,7 +2,76 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from decimal import Decimal
+import random
+import string
+
+
+class UserProfile(models.Model):
+    """Extended user profile with unique tracking ID."""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    tracking_id = models.CharField(max_length=12, unique=True, editable=False)
+    display_name = models.CharField(max_length=50, blank=True)
+    bio = models.TextField(max_length=200, blank=True)
+    avatar_color = models.CharField(max_length=7, default='#3b82f6')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Stats
+    total_workouts = models.PositiveIntegerField(default=0)
+    total_volume = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    current_streak = models.PositiveIntegerField(default=0)
+    longest_streak = models.PositiveIntegerField(default=0)
+    
+    def save(self, *args, **kwargs):
+        if not self.tracking_id:
+            self.tracking_id = self.generate_unique_id()
+        if not self.display_name:
+            self.display_name = self.user.username
+        super().save(*args, **kwargs)
+    
+    @property
+    def user_id(self):
+        """Alias for tracking_id for templates."""
+        return self.tracking_id
+    
+    @staticmethod
+    def generate_unique_id():
+        """Generate a unique 8-character alphanumeric ID."""
+        while True:
+            # Format: IL-XXXXXX (IL prefix + 6 chars)
+            chars = string.ascii_uppercase + string.digits
+            new_id = 'IL-' + ''.join(random.choices(chars, k=6))
+            if not UserProfile.objects.filter(tracking_id=new_id).exists():
+                return new_id
+    
+    def get_initials(self):
+        """Get user initials for avatar."""
+        name = self.display_name or self.user.username
+        parts = name.split()
+        if len(parts) >= 2:
+            return (parts[0][0] + parts[1][0]).upper()
+        return name[:2].upper()
+    
+    def __str__(self):
+        return f"{self.user.username} ({self.tracking_id})"
+
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    """Auto-create profile when user is created."""
+    if created:
+        # Generate random avatar color
+        colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16']
+        UserProfile.objects.create(user=instance, avatar_color=random.choice(colors))
+
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    """Save profile when user is saved."""
+    if hasattr(instance, 'profile'):
+        instance.profile.save()
 
 
 class Exercise(models.Model):

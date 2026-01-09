@@ -6,14 +6,72 @@ from django.db.models import Max, Count, Sum, Q
 from django.utils import timezone
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.models import User
+from django.contrib.auth import login
 from datetime import timedelta
 import json
 
 from .models import (
     Exercise, Workout, Set, 
     BodyWeight, WorkoutTemplate, TemplateExercise, Goal,
-    BodyMeasurement, Achievement
+    BodyMeasurement, Achievement, UserProfile
 )
+
+
+class RegisterView(View):
+    """User registration view."""
+    
+    def get(self, request):
+        if request.user.is_authenticated:
+            return redirect('dashboard')
+        return render(request, 'registration/register.html')
+    
+    def post(self, request):
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
+        password = request.POST.get('password', '')
+        password2 = request.POST.get('password2', '')
+        display_name = request.POST.get('display_name', '').strip()
+        
+        errors = []
+        
+        # Validation
+        if len(username) < 3:
+            errors.append('Username must be at least 3 characters.')
+        if User.objects.filter(username__iexact=username).exists():
+            errors.append('Username already taken.')
+        if email and User.objects.filter(email__iexact=email).exists():
+            errors.append('Email already registered.')
+        if len(password) < 6:
+            errors.append('Password must be at least 6 characters.')
+        if password != password2:
+            errors.append('Passwords do not match.')
+        
+        if errors:
+            return render(request, 'registration/register.html', {
+                'errors': errors,
+                'username': username,
+                'email': email,
+                'display_name': display_name,
+            })
+        
+        # Create user
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password
+        )
+        
+        # Update profile with display name if provided
+        if display_name:
+            user.profile.display_name = display_name
+            user.profile.save()
+        
+        # Log the user in
+        login(request, user)
+        messages.success(request, f'Welcome to IronLog! Your ID is {user.profile.user_id}')
+        
+        return redirect('dashboard')
 
 
 class DashboardView(LoginRequiredMixin, View):
@@ -1333,3 +1391,65 @@ class AchievementsView(LoginRequiredMixin, View):
                     Achievement.check_and_unlock(user, 'ohp_60')
         except:
             pass
+
+
+class ProfileView(LoginRequiredMixin, View):
+    """User profile view."""
+    
+    def get(self, request):
+        user = request.user
+        profile = user.profile
+        
+        # Calculate stats
+        total_workouts = Workout.objects.filter(user=user).count()
+        total_sets = Set.objects.filter(workout__user=user).count()
+        total_volume = sum(w.get_total_volume() for w in Workout.objects.filter(user=user))
+        total_prs = Achievement.objects.filter(user=user, unlocked=True).count()
+        
+        # Recent activity
+        recent_workouts = Workout.objects.filter(user=user)[:5]
+        
+        # Member since
+        member_since = user.date_joined
+        
+        # Calculate streak
+        today = timezone.now().date()
+        streak = 0
+        check_date = today
+        while True:
+            if Workout.objects.filter(user=user, date=check_date).exists():
+                streak += 1
+                check_date -= timedelta(days=1)
+            else:
+                break
+        
+        context = {
+            'profile': profile,
+            'total_workouts': total_workouts,
+            'total_sets': total_sets,
+            'total_volume': total_volume,
+            'total_prs': total_prs,
+            'recent_workouts': recent_workouts,
+            'member_since': member_since,
+            'current_streak': streak,
+        }
+        
+        return render(request, 'workouts/profile.html', context)
+    
+    def post(self, request):
+        """Update profile."""
+        user = request.user
+        profile = user.profile
+        
+        display_name = request.POST.get('display_name', '').strip()
+        bio = request.POST.get('bio', '').strip()
+        avatar_color = request.POST.get('avatar_color', profile.avatar_color)
+        
+        if display_name:
+            profile.display_name = display_name
+        profile.bio = bio
+        profile.avatar_color = avatar_color
+        profile.save()
+        
+        messages.success(request, 'Profile updated successfully!')
+        return redirect('profile')
