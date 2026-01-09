@@ -353,14 +353,29 @@ class Achievement(models.Model):
     ]
     
     ICONS = {
-        'first_workout': '🎉', 'workouts_10': '💪', 'workouts_50': '🔥', 
-        'workouts_100': '⭐', 'workouts_500': '👑',
-        'streak_7': '📅', 'streak_30': '🗓️', 'streak_100': '📆',
-        'first_pr': '🏆', 'prs_10': '🥇', 'prs_50': '💎',
-        'volume_10k': '🏋️', 'volume_100k': '💪', 'volume_1m': '🦾',
-        'bench_100': '🎯', 'squat_140': '🦵', 'deadlift_180': '🏆', 'ohp_60': '🙌',
-        'early_bird': '🌅', 'night_owl': '🦉', 'weekend_warrior': '⚔️',
-        'first_measurement': '📏', 'weight_logged_30': '⚖️',
+        'first_workout': 'fa-solid fa-flag-checkered', 
+        'workouts_10': 'fa-solid fa-person-running', 
+        'workouts_50': 'fa-solid fa-fire-flame-curved', 
+        'workouts_100': 'fa-solid fa-star', 
+        'workouts_500': 'fa-solid fa-crown',
+        'streak_7': 'fa-solid fa-calendar-week', 
+        'streak_30': 'fa-solid fa-calendar-check', 
+        'streak_100': 'fa-solid fa-calendar-days',
+        'first_pr': 'fa-solid fa-trophy', 
+        'prs_10': 'fa-solid fa-medal', 
+        'prs_50': 'fa-solid fa-gem',
+        'volume_10k': 'fa-solid fa-dumbbell', 
+        'volume_100k': 'fa-solid fa-weight-hanging', 
+        'volume_1m': 'fa-solid fa-mountain',
+        'bench_100': 'fa-solid fa-bullseye', 
+        'squat_140': 'fa-solid fa-person-arrow-down-to-line', 
+        'deadlift_180': 'fa-solid fa-arrow-up-from-ground-water', 
+        'ohp_60': 'fa-solid fa-hands',
+        'early_bird': 'fa-solid fa-sun', 
+        'night_owl': 'fa-solid fa-moon', 
+        'weekend_warrior': 'fa-solid fa-swords',
+        'first_measurement': 'fa-solid fa-ruler', 
+        'weight_logged_30': 'fa-solid fa-scale-balanced',
     }
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)

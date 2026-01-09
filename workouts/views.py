@@ -436,31 +436,40 @@ class DeleteExerciseView(LoginRequiredMixin, View):
 
 
 class ProgressView(LoginRequiredMixin, View):
-    """Track progress for a specific exercise."""
+    """Comprehensive exercise detail page."""
     
     def get(self, request, exercise_id):
+        from datetime import timedelta
+        from decimal import Decimal
+        
         user = request.user
         exercise = get_object_or_404(Exercise, id=exercise_id)
         
-        # Get all sets for this exercise by this user, grouped by workout date
+        # Get all sets for this exercise by this user
+        all_sets = list(exercise.sets.filter(workout__user=user).select_related('workout').order_by('-workout__date', '-id'))
+        
+        # Group by workout date
         sets_by_date = {}
-        for s in exercise.sets.filter(workout__user=user).select_related('workout').order_by('workout__date'):
+        for s in all_sets:
             date = s.workout.date
             if date not in sets_by_date:
                 sets_by_date[date] = {
                     'max_weight': s.weight,
-                    'total_volume': 0,
-                    'sets': []
+                    'max_reps': s.reps,
+                    'total_volume': Decimal('0'),
+                    'sets': [],
+                    'date': date
                 }
             sets_by_date[date]['sets'].append(s)
             sets_by_date[date]['total_volume'] += s.weight * s.reps
             if s.weight > sets_by_date[date]['max_weight']:
                 sets_by_date[date]['max_weight'] = s.weight
+                sets_by_date[date]['max_reps'] = s.reps
         
-        # Convert to list for chart
+        # Progress data for chart (sorted by date ascending)
         progress_data = [
             {
-                'date': date.isoformat(),
+                'date': data['date'].strftime('%b %d'),
                 'max_weight': float(data['max_weight']),
                 'volume': float(data['total_volume']),
                 'sets': len(data['sets'])
@@ -468,17 +477,165 @@ class ProgressView(LoginRequiredMixin, View):
             for date, data in sorted(sets_by_date.items())
         ]
         
-        # Calculate total volume across all time
+        # History data (sorted by date descending, limit 10)
+        history = [
+            {
+                'date': data['date'],
+                'sets': len(data['sets']),
+                'max_weight': data['max_weight'],
+                'max_reps': data['max_reps'],
+                'volume': data['total_volume']
+            }
+            for date, data in sorted(sets_by_date.items(), reverse=True)[:10]
+        ]
+        
+        # Best sets (by estimated 1RM)
+        best_sets = []
+        for s in all_sets:
+            # Brzycki formula for estimated 1RM
+            if s.reps > 0 and s.reps <= 12:
+                estimated_1rm = float(s.weight) * (36 / (37 - s.reps))
+            else:
+                estimated_1rm = float(s.weight)
+            s.estimated_1rm = estimated_1rm
+            best_sets.append(s)
+        
+        best_sets = sorted(best_sets, key=lambda x: x.estimated_1rm, reverse=True)[:5]
+        
+        # Calculate analytics
         total_volume = sum(d['volume'] for d in progress_data)
+        total_sessions = len(sets_by_date)
+        total_sets = len(all_sets)
+        
+        avg_weight = sum(float(s.weight) for s in all_sets) / len(all_sets) if all_sets else 0
+        avg_reps = sum(s.reps for s in all_sets) / len(all_sets) if all_sets else 0
+        avg_sets = total_sets / total_sessions if total_sessions else 0
+        
+        # Frequency (times per month, based on last 30 days)
+        thirty_days_ago = timezone.now().date() - timedelta(days=30)
+        recent_sessions = sum(1 for date in sets_by_date.keys() if date >= thirty_days_ago)
+        frequency = recent_sessions
+        
+        # Weight progress (% change in last 30 days)
+        weight_progress = 0
+        recent_data = [d for d in progress_data if d['date']]
+        if len(recent_data) >= 2:
+            first_weight = recent_data[0]['max_weight']
+            last_weight = recent_data[-1]['max_weight']
+            if first_weight > 0:
+                weight_progress = ((last_weight - first_weight) / first_weight) * 100
+        
+        # Muscle activation data
+        MUSCLE_ACTIVATION = {
+            'chest': [
+                {'name': 'Chest (Pectorals)', 'level': 'primary'},
+                {'name': 'Front Deltoids', 'level': 'secondary'},
+                {'name': 'Triceps', 'level': 'secondary'},
+                {'name': 'Core', 'level': 'tertiary'},
+            ],
+            'back': [
+                {'name': 'Latissimus Dorsi', 'level': 'primary'},
+                {'name': 'Rhomboids', 'level': 'primary'},
+                {'name': 'Biceps', 'level': 'secondary'},
+                {'name': 'Rear Deltoids', 'level': 'secondary'},
+                {'name': 'Forearms', 'level': 'tertiary'},
+            ],
+            'shoulders': [
+                {'name': 'Deltoids', 'level': 'primary'},
+                {'name': 'Trapezius', 'level': 'secondary'},
+                {'name': 'Triceps', 'level': 'secondary'},
+                {'name': 'Core', 'level': 'tertiary'},
+            ],
+            'legs': [
+                {'name': 'Quadriceps', 'level': 'primary'},
+                {'name': 'Hamstrings', 'level': 'primary'},
+                {'name': 'Glutes', 'level': 'secondary'},
+                {'name': 'Calves', 'level': 'tertiary'},
+                {'name': 'Core', 'level': 'tertiary'},
+            ],
+            'biceps': [
+                {'name': 'Biceps Brachii', 'level': 'primary'},
+                {'name': 'Brachialis', 'level': 'primary'},
+                {'name': 'Forearms', 'level': 'secondary'},
+            ],
+            'triceps': [
+                {'name': 'Triceps Brachii', 'level': 'primary'},
+                {'name': 'Shoulders', 'level': 'secondary'},
+                {'name': 'Chest', 'level': 'tertiary'},
+            ],
+            'core': [
+                {'name': 'Rectus Abdominis', 'level': 'primary'},
+                {'name': 'Obliques', 'level': 'primary'},
+                {'name': 'Transverse Abdominis', 'level': 'secondary'},
+                {'name': 'Lower Back', 'level': 'tertiary'},
+            ],
+            'glutes': [
+                {'name': 'Gluteus Maximus', 'level': 'primary'},
+                {'name': 'Gluteus Medius', 'level': 'secondary'},
+                {'name': 'Hamstrings', 'level': 'secondary'},
+                {'name': 'Core', 'level': 'tertiary'},
+            ],
+            'calves': [
+                {'name': 'Gastrocnemius', 'level': 'primary'},
+                {'name': 'Soleus', 'level': 'primary'},
+            ],
+            'traps': [
+                {'name': 'Trapezius', 'level': 'primary'},
+                {'name': 'Rhomboids', 'level': 'secondary'},
+                {'name': 'Rear Deltoids', 'level': 'secondary'},
+            ],
+            'forearms': [
+                {'name': 'Forearm Flexors', 'level': 'primary'},
+                {'name': 'Forearm Extensors', 'level': 'primary'},
+                {'name': 'Grip', 'level': 'secondary'},
+            ],
+        }
+        
+        muscles_worked = MUSCLE_ACTIVATION.get(exercise.muscle_group, [])
+        
+        # Determine movement type
+        MOVEMENT_TYPES = {
+            'chest': 'Push (Horizontal)',
+            'back': 'Pull',
+            'shoulders': 'Push (Vertical)',
+            'legs': 'Compound',
+            'biceps': 'Pull (Isolation)',
+            'triceps': 'Push (Isolation)',
+            'core': 'Stability',
+            'glutes': 'Hip Hinge',
+            'calves': 'Isolation',
+            'traps': 'Pull',
+            'forearms': 'Isolation',
+        }
+        movement_type = MOVEMENT_TYPES.get(exercise.muscle_group, 'Compound')
+        
+        # Effectiveness score (based on compound movements being more effective)
+        EFFECTIVENESS = {
+            'chest': 85, 'back': 90, 'shoulders': 80, 'legs': 95,
+            'biceps': 70, 'triceps': 70, 'core': 75, 'glutes': 88,
+            'calves': 60, 'traps': 72, 'forearms': 55,
+        }
+        effectiveness = EFFECTIVENESS.get(exercise.muscle_group, 70)
         
         context = {
             'exercise': exercise,
             'progress_data': progress_data,
+            'history': history,
+            'best_sets': best_sets,
             'pb': exercise.get_personal_best(user),
             'suggestion': exercise.get_suggested_weight(user),
             'total_volume': total_volume,
+            'total_sessions': total_sessions,
+            'avg_weight': avg_weight,
+            'avg_reps': avg_reps,
+            'avg_sets': avg_sets,
+            'frequency': frequency,
+            'weight_progress': weight_progress,
+            'muscles_worked': muscles_worked,
+            'movement_type': movement_type,
+            'effectiveness': effectiveness,
         }
-        return render(request, 'workouts/progress.html', context)
+        return render(request, 'workouts/exercise_detail.html', context)
 
 
 # ============= BODY WEIGHT =============

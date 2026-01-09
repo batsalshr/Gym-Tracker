@@ -1,0 +1,737 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ exercise.name }} - IronLog{% endblock %}
+{% block page_title %}{{ exercise.name }}{% endblock %}
+
+{% block header_actions %}
+<div style="display: flex; gap: 0.5rem; align-items: center;">
+    <span class="badge badge-primary"><i class="fa-solid fa-tag"></i> {{ exercise.get_muscle_group_display }}</span>
+    {% if exercise.equipment %}
+    <span class="badge badge-secondary"><i class="fa-solid fa-dumbbell"></i> {{ exercise.equipment|title }}</span>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'exercises' %}?group={{ exercise.muscle_group }}" class="back-link">
+    <i class="fa-solid fa-arrow-left"></i> Back to {{ exercise.get_muscle_group_display }}
+</a>
+
+<div class="exercise-grid">
+    <!-- Left Column -->
+    <div class="left-col">
+        <!-- Muscle Activation Card -->
+        <div class="card muscle-card">
+            <h3 class="card-title"><i class="fa-solid fa-person"></i> Muscle Activation</h3>
+            
+            <div class="muscle-content">
+                <div class="muscle-figure">
+                    <svg viewBox="0 0 260 450" class="muscle-man-svg">
+                        <!-- Detailed Muscle Man -->
+                        <defs>
+                            <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#2a4a5e;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#1a3040;stop-opacity:1" />
+                            </linearGradient>
+                            <linearGradient id="muscleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#3a6a7e;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#2a5060;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        
+                        <!-- Base Body -->
+                        <g class="body-base" fill="url(#bodyGrad)" stroke="#3a5a6a" stroke-width="1">
+                            <!-- Head -->
+                            <ellipse cx="130" cy="38" rx="28" ry="32"/>
+                            <!-- Neck -->
+                            <rect x="118" y="68" width="24" height="20" rx="4"/>
+                            
+                            <!-- Torso -->
+                            <path d="M80 88 
+                                     C75 95, 72 120, 74 160
+                                     L74 200
+                                     C74 210, 80 220, 90 225
+                                     L105 230 L130 235 L155 230 L170 225
+                                     C180 220, 186 210, 186 200
+                                     L186 160
+                                     C188 120, 185 95, 180 88
+                                     L170 85 L130 82 L90 85 Z"/>
+                            
+                            <!-- Left Arm -->
+                            <path d="M80 90 
+                                     C65 92, 55 100, 48 115
+                                     L35 155
+                                     C30 170, 28 185, 32 195
+                                     L42 200
+                                     C50 195, 55 180, 58 165
+                                     L70 125
+                                     C75 110, 78 100, 80 95 Z"/>
+                            
+                            <!-- Left Forearm -->
+                            <path d="M32 195
+                                     C28 205, 25 220, 24 235
+                                     L22 265
+                                     C22 275, 25 282, 32 285
+                                     L42 282
+                                     C48 278, 50 268, 50 255
+                                     L52 225
+                                     C54 210, 50 200, 42 198 Z"/>
+                            
+                            <!-- Right Arm -->
+                            <path d="M180 90 
+                                     C195 92, 205 100, 212 115
+                                     L225 155
+                                     C230 170, 232 185, 228 195
+                                     L218 200
+                                     C210 195, 205 180, 202 165
+                                     L190 125
+                                     C185 110, 182 100, 180 95 Z"/>
+                            
+                            <!-- Right Forearm -->
+                            <path d="M228 195
+                                     C232 205, 235 220, 236 235
+                                     L238 265
+                                     C238 275, 235 282, 228 285
+                                     L218 282
+                                     C212 278, 210 268, 210 255
+                                     L208 225
+                                     C206 210, 210 200, 218 198 Z"/>
+                            
+                            <!-- Hips/Pelvis -->
+                            <path d="M90 225 
+                                     L85 250 L95 270 L130 275 L165 270 L175 250 L170 225
+                                     L155 230 L130 235 L105 230 Z"/>
+                            
+                            <!-- Left Leg -->
+                            <path d="M95 268
+                                     C88 280, 82 310, 80 350
+                                     L78 400
+                                     C78 415, 82 425, 90 428
+                                     L110 428
+                                     C118 425, 120 415, 118 400
+                                     L115 350
+                                     C112 310, 108 280, 105 270 Z"/>
+                            
+                            <!-- Right Leg -->
+                            <path d="M165 268
+                                     C172 280, 178 310, 180 350
+                                     L182 400
+                                     C182 415, 178 425, 170 428
+                                     L150 428
+                                     C142 425, 140 415, 142 400
+                                     L145 350
+                                     C148 310, 152 280, 155 270 Z"/>
+                        </g>
+                        
+                        <!-- Muscle Overlays -->
+                        <g class="muscles" fill="url(#muscleGrad)" stroke="#4a7a8a" stroke-width="0.5">
+                            <!-- Traps -->
+                            <path id="muscle-traps" class="muscle-part" d="M100 85 L130 78 L160 85 L155 98 L130 92 L105 98 Z" opacity="0.3"/>
+                            
+                            <!-- Shoulders (Deltoids) -->
+                            <ellipse id="muscle-shoulders-l" class="muscle-part" cx="68" cy="98" rx="16" ry="14" opacity="0.3"/>
+                            <ellipse id="muscle-shoulders-r" class="muscle-part" cx="192" cy="98" rx="16" ry="14" opacity="0.3"/>
+                            
+                            <!-- Chest (Pectorals) -->
+                            <path id="muscle-chest" class="muscle-part" d="M88 100 Q130 115 172 100 L168 135 Q130 150 92 135 Z" opacity="0.3"/>
+                            
+                            <!-- Back (Lats) -->
+                            <path id="muscle-back" class="muscle-part" d="M85 105 L85 175 Q130 190 175 175 L175 105 Q130 95 85 105 Z" opacity="0.3"/>
+                            
+                            <!-- Biceps -->
+                            <ellipse id="muscle-biceps-l" class="muscle-part" cx="52" cy="135" rx="12" ry="28" transform="rotate(-15 52 135)" opacity="0.3"/>
+                            <ellipse id="muscle-biceps-r" class="muscle-part" cx="208" cy="135" rx="12" ry="28" transform="rotate(15 208 135)" opacity="0.3"/>
+                            
+                            <!-- Triceps -->
+                            <ellipse id="muscle-triceps-l" class="muscle-part" cx="58" cy="140" rx="8" ry="22" transform="rotate(-15 58 140)" opacity="0.3"/>
+                            <ellipse id="muscle-triceps-r" class="muscle-part" cx="202" cy="140" rx="8" ry="22" transform="rotate(15 202 140)" opacity="0.3"/>
+                            
+                            <!-- Forearms -->
+                            <ellipse id="muscle-forearms-l" class="muscle-part" cx="38" cy="220" rx="10" ry="30" transform="rotate(-5 38 220)" opacity="0.3"/>
+                            <ellipse id="muscle-forearms-r" class="muscle-part" cx="222" cy="220" rx="10" ry="30" transform="rotate(5 222 220)" opacity="0.3"/>
+                            
+                            <!-- Core (Abs) -->
+                            <path id="muscle-core" class="muscle-part" d="M105 145 L105 210 Q130 220 155 210 L155 145 Q130 155 105 145 Z" opacity="0.3"/>
+                            
+                            <!-- Glutes -->
+                            <ellipse id="muscle-glutes" class="muscle-part" cx="130" cy="252" rx="35" ry="18" opacity="0.3"/>
+                            
+                            <!-- Quads (Legs) -->
+                            <ellipse id="muscle-legs-l" class="muscle-part" cx="95" cy="330" rx="18" ry="50" opacity="0.3"/>
+                            <ellipse id="muscle-legs-r" class="muscle-part" cx="165" cy="330" rx="18" ry="50" opacity="0.3"/>
+                            
+                            <!-- Calves -->
+                            <ellipse id="muscle-calves-l" class="muscle-part" cx="92" cy="400" rx="12" ry="28" opacity="0.3"/>
+                            <ellipse id="muscle-calves-r" class="muscle-part" cx="168" cy="400" rx="12" ry="28" opacity="0.3"/>
+                        </g>
+                        
+                        <!-- Muscle Definition Lines -->
+                        <g class="muscle-lines" stroke="#4a8090" stroke-width="0.8" fill="none" opacity="0.6">
+                            <!-- Chest lines -->
+                            <path d="M130 105 L130 140"/>
+                            <path d="M100 115 Q130 125 160 115"/>
+                            <!-- Ab lines -->
+                            <path d="M130 150 L130 205"/>
+                            <path d="M108 160 L152 160"/>
+                            <path d="M110 178 L150 178"/>
+                            <path d="M112 196 L148 196"/>
+                        </g>
+                    </svg>
+                </div>
+                
+                <div class="muscle-info">
+                    <div class="legend-row">
+                        <span class="leg-item primary"><span class="dot"></span> Primary</span>
+                        <span class="leg-item secondary"><span class="dot"></span> Secondary</span>
+                        <span class="leg-item tertiary"><span class="dot"></span> Stabilizer</span>
+                    </div>
+                    
+                    <div class="muscle-tags">
+                        {% for muscle in muscles_worked %}
+                        <div class="muscle-tag {{ muscle.level }}">
+                            <span class="name">{{ muscle.name }}</span>
+                            <span class="level-badge">{{ muscle.level|upper }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom Row: Best Sets & History -->
+        <div class="bottom-row">
+            <div class="card">
+                <h3 class="card-title"><i class="fa-solid fa-medal"></i> Best Sets</h3>
+                {% if best_sets %}
+                <div class="list">
+                    {% for set in best_sets %}
+                    <div class="list-item {% if forloop.first %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
+                        <span class="rank">{% if forloop.first %}<i class="fa-solid fa-crown"></i>{% elif forloop.counter == 2 %}<i class="fa-solid fa-medal"></i>{% elif forloop.counter == 3 %}<i class="fa-solid fa-award"></i>{% else %}{{ forloop.counter }}{% endif %}</span>
+                        <span class="main">{{ set.weight }}kg × {{ set.reps }}</span>
+                        <span class="meta">{{ set.workout.date|date:"M d" }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty"><i class="fa-solid fa-dumbbell"></i><span>No sets logged</span></div>
+                {% endif %}
+            </div>
+            
+            <div class="card">
+                <h3 class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> History</h3>
+                {% if history %}
+                <div class="list">
+                    {% for entry in history|slice:":5" %}
+                    <div class="list-item">
+                        <span class="date">{{ entry.date|date:"M d" }}</span>
+                        <span class="main">{{ entry.max_weight }}kg × {{ entry.max_reps }}</span>
+                        <span class="meta">{{ entry.sets }} sets</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty"><i class="fa-solid fa-history"></i><span>No history</span></div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Column -->
+    <div class="right-col">
+        <!-- Exercise Info Card -->
+        <div class="card">
+            <h3 class="card-title"><i class="fa-solid fa-circle-info"></i> Exercise Info</h3>
+            
+            <div class="info-row">
+                <div class="info-block">
+                    <span class="info-label">Equipment</span>
+                    <span class="info-value">{{ exercise.equipment|default:"Bodyweight"|title }}</span>
+                </div>
+                <div class="info-block">
+                    <span class="info-label">Movement</span>
+                    <span class="info-value">{{ movement_type }}</span>
+                </div>
+            </div>
+            
+            <div class="effectiveness-row">
+                <span class="eff-label">Effectiveness</span>
+                <div class="eff-bar">
+                    <div class="eff-fill" style="width: {{ effectiveness }}%;"></div>
+                </div>
+                <span class="eff-percent">{{ effectiveness }}%</span>
+            </div>
+        </div>
+        
+        <!-- Analytics Card -->
+        <div class="card">
+            <h3 class="card-title"><i class="fa-solid fa-chart-pie"></i> Analytics</h3>
+            
+            <div class="analytics-grid">
+                <div class="analytics-circle">
+                    <div class="circle-ring">
+                        <span class="circle-value">{{ avg_weight|floatformat:1 }}</span>
+                    </div>
+                    <span class="circle-label">Avg Weight<br>(KG)</span>
+                </div>
+                <div class="analytics-circle">
+                    <div class="circle-ring">
+                        <span class="circle-value">{{ avg_reps|floatformat:0 }}</span>
+                    </div>
+                    <span class="circle-label">Avg Reps</span>
+                </div>
+                <div class="analytics-circle">
+                    <div class="circle-ring">
+                        <span class="circle-value">{{ avg_sets|floatformat:1 }}</span>
+                    </div>
+                    <span class="circle-label">Sets/Session</span>
+                </div>
+                <div class="analytics-circle">
+                    <div class="circle-ring">
+                        <span class="circle-value">{{ frequency }}</span>
+                    </div>
+                    <span class="circle-label">Times/Month</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- CTA Button -->
+        <a href="{% url 'log_workout' %}" class="cta-button">
+            <i class="fa-solid fa-plus"></i> Log This Exercise
+        </a>
+    </div>
+</div>
+
+<style>
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.8125rem;
+    margin-bottom: 1rem;
+    transition: color 0.2s;
+}
+.back-link:hover { color: var(--accent); }
+
+.exercise-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 1rem;
+    align-items: start;
+}
+
+.card {
+    background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+    border: 1px solid rgba(71, 85, 105, 0.4);
+    border-radius: 16px;
+    padding: 1.25rem;
+}
+
+.card-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-primary);
+}
+
+.card-title i {
+    color: var(--accent);
+}
+
+/* Left Column */
+.left-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Muscle Card */
+.muscle-card {
+    background: linear-gradient(145deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+}
+
+.muscle-content {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+.muscle-figure {
+    flex-shrink: 0;
+    width: 200px;
+}
+
+.muscle-man-svg {
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+.muscle-part.primary {
+    fill: #22c55e !important;
+    opacity: 0.85 !important;
+    filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.5));
+}
+
+.muscle-part.secondary {
+    fill: #f59e0b !important;
+    opacity: 0.75 !important;
+    filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.4));
+}
+
+.muscle-part.tertiary {
+    fill: #ef4444 !important;
+    opacity: 0.6 !important;
+    filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.3));
+}
+
+.muscle-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.legend-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.leg-item {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.leg-item .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.leg-item.primary .dot { background: #22c55e; box-shadow: 0 0 6px rgba(34, 197, 94, 0.5); }
+.leg-item.secondary .dot { background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.4); }
+.leg-item.tertiary .dot { background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.3); }
+
+.muscle-tags {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.muscle-tag {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.625rem 0.875rem;
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(71, 85, 105, 0.3);
+    border-radius: 8px;
+    font-size: 0.8125rem;
+}
+
+.muscle-tag .level-badge {
+    font-size: 0.5625rem;
+    font-weight: 700;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    letter-spacing: 0.03em;
+}
+
+.muscle-tag.primary .level-badge { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+.muscle-tag.secondary .level-badge { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+.muscle-tag.tertiary .level-badge { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+/* Bottom Row */
+.bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 8px;
+    font-size: 0.8125rem;
+}
+
+.list-item.gold { background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.2); }
+.list-item.silver { background: rgba(148, 163, 184, 0.1); border: 1px solid rgba(148, 163, 184, 0.2); }
+.list-item.bronze { background: rgba(180, 83, 9, 0.1); border: 1px solid rgba(180, 83, 9, 0.2); }
+
+.list-item .rank {
+    width: 24px;
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+.list-item.gold .rank { color: #fbbf24; }
+.list-item.silver .rank { color: #94a3b8; }
+.list-item.bronze .rank { color: #b45309; }
+
+.list-item .main {
+    flex: 1;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.list-item .date {
+    color: var(--text-secondary);
+    width: 50px;
+}
+
+.list-item .meta {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: var(--text-muted);
+    gap: 0.5rem;
+}
+
+.empty i {
+    font-size: 1.5rem;
+    opacity: 0.4;
+}
+
+.empty span {
+    font-size: 0.8125rem;
+}
+
+/* Right Column */
+.right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Info Card */
+.info-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.info-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.info-label {
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.info-value {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.effectiveness-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.eff-label {
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    width: 80px;
+}
+
+.eff-bar {
+    flex: 1;
+    height: 10px;
+    background: rgba(30, 41, 59, 0.8);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.eff-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #22c55e 100%);
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+}
+
+.eff-percent {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #22c55e;
+    width: 45px;
+    text-align: right;
+}
+
+/* Analytics Card */
+.analytics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.analytics-circle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.circle-ring {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+    border: 3px solid rgba(59, 130, 246, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 
+        inset 0 2px 10px rgba(0, 0, 0, 0.3),
+        0 0 20px rgba(59, 130, 246, 0.1);
+}
+
+.circle-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.circle-label {
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.4;
+}
+
+/* CTA Button */
+.cta-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--accent), #2563eb);
+    color: white;
+    border-radius: 12px;
+    text-decoration: none;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.cta-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .exercise-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .right-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+    
+    .cta-button {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 768px) {
+    .muscle-content {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .muscle-figure {
+        width: 160px;
+    }
+    
+    .bottom-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .right-col {
+        grid-template-columns: 1fr;
+    }
+    
+    .analytics-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .circle-ring {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .circle-value {
+        font-size: 1.125rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const muscleMap = {
+    'chest': { primary: ['muscle-chest'], secondary: ['muscle-shoulders-l', 'muscle-shoulders-r', 'muscle-triceps-l', 'muscle-triceps-r'], tertiary: ['muscle-core'] },
+    'back': { primary: ['muscle-back'], secondary: ['muscle-biceps-l', 'muscle-biceps-r'], tertiary: ['muscle-core', 'muscle-forearms-l', 'muscle-forearms-r'] },
+    'shoulders': { primary: ['muscle-shoulders-l', 'muscle-shoulders-r'], secondary: ['muscle-triceps-l', 'muscle-triceps-r', 'muscle-traps'], tertiary: ['muscle-core'] },
+    'legs': { primary: ['muscle-legs-l', 'muscle-legs-r'], secondary: ['muscle-glutes'], tertiary: ['muscle-core', 'muscle-calves-l', 'muscle-calves-r'] },
+    'biceps': { primary: ['muscle-biceps-l', 'muscle-biceps-r'], secondary: ['muscle-forearms-l', 'muscle-forearms-r'], tertiary: ['muscle-back'] },
+    'triceps': { primary: ['muscle-triceps-l', 'muscle-triceps-r'], secondary: ['muscle-shoulders-l', 'muscle-shoulders-r'], tertiary: ['muscle-chest'] },
+    'core': { primary: ['muscle-core'], secondary: ['muscle-back'], tertiary: ['muscle-glutes'] },
+    'glutes': { primary: ['muscle-glutes'], secondary: ['muscle-legs-l', 'muscle-legs-r'], tertiary: ['muscle-core'] },
+    'calves': { primary: ['muscle-calves-l', 'muscle-calves-r'], secondary: ['muscle-legs-l', 'muscle-legs-r'], tertiary: [] },
+    'traps': { primary: ['muscle-traps'], secondary: ['muscle-shoulders-l', 'muscle-shoulders-r', 'muscle-back'], tertiary: ['muscle-core'] },
+    'forearms': { primary: ['muscle-forearms-l', 'muscle-forearms-r'], secondary: ['muscle-biceps-l', 'muscle-biceps-r'], tertiary: [] }
+};
+
+const mg = '{{ exercise.muscle_group }}';
+if (muscleMap[mg]) {
+    const m = muscleMap[mg];
+    m.primary.forEach(id => document.getElementById(id)?.classList.add('primary'));
+    m.secondary.forEach(id => document.getElementById(id)?.classList.add('secondary'));
+    m.tertiary.forEach(id => document.getElementById(id)?.classList.add('tertiary'));
+}
+</script>
+{% endblock %}
