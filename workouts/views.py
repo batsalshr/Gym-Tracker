@@ -80,6 +80,9 @@ class DashboardView(LoginRequiredMixin, View):
     def get(self, request):
         user = request.user
         
+        # Ensure user has a profile
+        profile, created = UserProfile.objects.get_or_create(user=user)
+        
         # Recent workouts (user's only)
         recent_workouts = Workout.objects.filter(user=user).prefetch_related('sets__exercise')[:5]
         
@@ -141,6 +144,7 @@ class DashboardView(LoginRequiredMixin, View):
         templates = WorkoutTemplate.objects.filter(Q(user=user) | Q(user__isnull=True))[:3]
         
         context = {
+            'profile': profile,
             'recent_workouts': recent_workouts,
             'total_workouts': total_workouts,
             'total_sets': total_sets,
@@ -1282,19 +1286,12 @@ class ChartsView(LoginRequiredMixin, View):
             day_counts[workout.date.strftime('%A')] += 1
         best_day = day_counts.most_common(1)[0] if day_counts else ('--', 0)
         
-       # Average workout duration (if tracked)
+        # Average workout duration (if tracked)
         avg_duration = None
-        workouts_with_duration = Workout.objects.filter(
-            user=user,
-            duration_minutes__isnull=False
-        )
-
+        workouts_with_duration = Workout.objects.filter(user=user, duration_minutes__isnull=False)
         if workouts_with_duration.exists():
-            avg_duration = (
-                sum(w.duration_minutes or 0 for w in workouts_with_duration)
-                / workouts_with_duration.count()
-        )
-
+            avg_duration = sum(w.duration_minutes or 0 for w in workouts_with_duration) / workouts_with_duration.count()
+        
         # Favorite exercise (most sets logged)
         from django.db.models import Count
         fav_exercise = Set.objects.filter(workout__user=user).values('exercise__name').annotate(
@@ -1470,7 +1467,9 @@ class ProfileView(LoginRequiredMixin, View):
     
     def get(self, request):
         user = request.user
-        profile = user.profile
+        
+        # Get or create profile for user
+        profile, created = UserProfile.objects.get_or_create(user=user)
         
         # Calculate stats
         total_workouts = Workout.objects.filter(user=user).count()
@@ -1511,7 +1510,9 @@ class ProfileView(LoginRequiredMixin, View):
     def post(self, request):
         """Update profile."""
         user = request.user
-        profile = user.profile
+        
+        # Get or create profile
+        profile, created = UserProfile.objects.get_or_create(user=user)
         
         display_name = request.POST.get('display_name', '').strip()
         bio = request.POST.get('bio', '').strip()
@@ -1525,3 +1526,165 @@ class ProfileView(LoginRequiredMixin, View):
         
         messages.success(request, 'Profile updated successfully!')
         return redirect('profile')
+
+
+class RecommendationsView(LoginRequiredMixin, View):
+    """Personalized exercise recommendations."""
+    
+    def get(self, request):
+        from datetime import timedelta
+        from collections import Counter, defaultdict
+        
+        user = request.user
+        today = timezone.now().date()
+        thirty_days_ago = today - timedelta(days=30)
+        
+        # Get user's workout history
+        recent_workouts = Workout.objects.filter(user=user, date__gte=thirty_days_ago)
+        all_sets = Set.objects.filter(workout__user=user)
+        recent_sets = all_sets.filter(workout__date__gte=thirty_days_ago)
+        
+        # Analyze muscle group distribution
+        muscle_counts = Counter()
+        for workout in recent_workouts:
+            for mg in workout.get_muscle_groups_list():
+                muscle_counts[mg] += 1
+        
+        # Find neglected muscle groups (trained less than average)
+        all_muscle_groups = ['chest', 'back', 'shoulders', 'legs', 'biceps', 'triceps', 'core']
+        avg_count = sum(muscle_counts.values()) / len(all_muscle_groups) if muscle_counts else 0
+        
+        neglected_muscles = []
+        for mg in all_muscle_groups:
+            count = muscle_counts.get(mg, 0)
+            if count < avg_count:
+                neglected_muscles.append({
+                    'muscle': mg,
+                    'display': dict(Exercise.MUSCLE_GROUPS).get(mg, mg),
+                    'count': count,
+                    'deficit': avg_count - count
+                })
+        neglected_muscles.sort(key=lambda x: x['deficit'], reverse=True)
+        
+        # Get exercises user has never tried
+        user_exercise_ids = set(all_sets.values_list('exercise_id', flat=True))
+        untried_exercises = Exercise.objects.exclude(id__in=user_exercise_ids).exclude(user__isnull=False)
+        
+        # Recommend untried exercises for neglected muscles
+        new_exercise_recs = []
+        for muscle in neglected_muscles[:3]:
+            exercises = untried_exercises.filter(muscle_group=muscle['muscle'])[:3]
+            for ex in exercises:
+                new_exercise_recs.append({
+                    'exercise': ex,
+                    'reason': f"Try this to work your {muscle['display'].lower()}"
+                })
+        
+        # If not enough neglected muscle exercises, add popular ones
+        if len(new_exercise_recs) < 6:
+            popular_untried = untried_exercises.exclude(
+                id__in=[r['exercise'].id for r in new_exercise_recs]
+            )[:6 - len(new_exercise_recs)]
+            for ex in popular_untried:
+                new_exercise_recs.append({
+                    'exercise': ex,
+                    'reason': 'Expand your exercise variety'
+                })
+        
+        # Get exercises user hasn't done recently (but has done before)
+        recent_exercise_ids = set(recent_sets.values_list('exercise_id', flat=True))
+        old_exercise_ids = user_exercise_ids - recent_exercise_ids
+        
+        comeback_exercises = []
+        if old_exercise_ids:
+            old_exercises = Exercise.objects.filter(id__in=old_exercise_ids)
+            for ex in old_exercises[:6]:
+                last_set = all_sets.filter(exercise=ex).order_by('-workout__date').first()
+                if last_set:
+                    days_ago = (today - last_set.workout.date).days
+                    comeback_exercises.append({
+                        'exercise': ex,
+                        'last_weight': last_set.weight,
+                        'last_reps': last_set.reps,
+                        'days_ago': days_ago,
+                        'reason': f"Last performed {days_ago} days ago"
+                    })
+        
+        # Progressive overload suggestions
+        overload_recs = []
+        frequent_exercises = recent_sets.values('exercise').annotate(
+            count=Count('id')
+        ).order_by('-count')[:10]
+        
+        for item in frequent_exercises:
+            exercise = Exercise.objects.get(id=item['exercise'])
+            pb = exercise.get_personal_best(user)
+            if pb:
+                suggested = exercise.get_suggested_weight(user)
+                if suggested and suggested > float(pb.weight):
+                    overload_recs.append({
+                        'exercise': exercise,
+                        'current_pb': pb.weight,
+                        'suggested': suggested,
+                        'increase': suggested - float(pb.weight)
+                    })
+        
+        overload_recs.sort(key=lambda x: x['increase'], reverse=True)
+        
+        # Workout frequency recommendation
+        workouts_this_week = Workout.objects.filter(
+            user=user, 
+            date__gte=today - timedelta(days=today.weekday())
+        ).count()
+        
+        weekly_avg = recent_workouts.count() / 4 if recent_workouts.count() > 0 else 0
+        
+        if weekly_avg < 2:
+            freq_recommendation = {
+                'status': 'low',
+                'message': 'Try to aim for at least 3 workouts per week for better results',
+                'current': round(weekly_avg, 1),
+                'target': 3
+            }
+        elif weekly_avg < 4:
+            freq_recommendation = {
+                'status': 'good',
+                'message': 'Good consistency! You could add one more session for faster progress',
+                'current': round(weekly_avg, 1),
+                'target': 4
+            }
+        else:
+            freq_recommendation = {
+                'status': 'excellent',
+                'message': 'Excellent dedication! Make sure to get adequate rest and recovery',
+                'current': round(weekly_avg, 1),
+                'target': weekly_avg
+            }
+        
+        # Today's workout suggestion based on what's neglected
+        today_suggestion = None
+        if neglected_muscles:
+            top_neglected = neglected_muscles[0]
+            suggested_exercises = Exercise.objects.filter(
+                muscle_group=top_neglected['muscle']
+            ).exclude(user__isnull=False)[:5]
+            
+            today_suggestion = {
+                'muscle': top_neglected['display'],
+                'muscle_key': top_neglected['muscle'],
+                'exercises': suggested_exercises,
+                'reason': f"You've only trained {top_neglected['display'].lower()} {top_neglected['count']} times in the last 30 days"
+            }
+        
+        context = {
+            'neglected_muscles': neglected_muscles[:4],
+            'new_exercise_recs': new_exercise_recs[:6],
+            'comeback_exercises': comeback_exercises[:4],
+            'overload_recs': overload_recs[:4],
+            'freq_recommendation': freq_recommendation,
+            'today_suggestion': today_suggestion,
+            'muscle_counts': dict(muscle_counts),
+            'total_workouts_30d': recent_workouts.count(),
+        }
+        
+        return render(request, 'workouts/recommendations.html', context)

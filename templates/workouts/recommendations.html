@@ -1,0 +1,675 @@
+{% extends 'base.html' %}
+
+{% block title %}Recommendations - IronLog{% endblock %}
+{% block page_title %}Recommendations{% endblock %}
+
+{% block header_actions %}
+<span class="badge badge-secondary"><i class="fa-solid fa-wand-magic-sparkles"></i> Personalized For You</span>
+{% endblock %}
+
+{% block content %}
+<!-- Today's Suggestion -->
+{% if today_suggestion %}
+<div class="today-card">
+    <div class="today-header">
+        <div class="today-icon">
+            <i class="fa-solid fa-bullseye"></i>
+        </div>
+        <div class="today-title">
+            <h2>Today's Focus: {{ today_suggestion.muscle }}</h2>
+            <p>{{ today_suggestion.reason }}</p>
+        </div>
+        <a href="{% url 'log_workout' %}" class="btn btn-primary">
+            <i class="fa-solid fa-plus"></i> Start Workout
+        </a>
+    </div>
+    
+    <div class="today-exercises">
+        <span class="label">Suggested exercises:</span>
+        <div class="exercise-chips">
+            {% for ex in today_suggestion.exercises %}
+            <a href="{% url 'exercise_progress' ex.id %}" class="exercise-chip">
+                {{ ex.name }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Stats Row -->
+<div class="stats-row">
+    <div class="stat-mini">
+        <i class="fa-solid fa-calendar-check"></i>
+        <span class="stat-num">{{ total_workouts_30d }}</span>
+        <span class="stat-text">workouts (30d)</span>
+    </div>
+    <div class="stat-mini">
+        <i class="fa-solid fa-fire"></i>
+        <span class="stat-num">{{ freq_recommendation.current }}</span>
+        <span class="stat-text">per week avg</span>
+    </div>
+    <div class="stat-mini status-{{ freq_recommendation.status }}">
+        <i class="fa-solid {% if freq_recommendation.status == 'excellent' %}fa-trophy{% elif freq_recommendation.status == 'good' %}fa-thumbs-up{% else %}fa-arrow-trend-up{% endif %}"></i>
+        <span class="stat-num">{{ freq_recommendation.status|title }}</span>
+        <span class="stat-text">consistency</span>
+    </div>
+</div>
+
+<!-- Frequency Tip -->
+<div class="tip-card {{ freq_recommendation.status }}">
+    <i class="fa-solid fa-lightbulb"></i>
+    <span>{{ freq_recommendation.message }}</span>
+</div>
+
+<div class="rec-grid">
+    <!-- Neglected Muscles -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fa-solid fa-triangle-exclamation"></i> Muscle Imbalances</h3>
+        </div>
+        
+        {% if neglected_muscles %}
+        <div class="muscle-bars">
+            {% for muscle in neglected_muscles %}
+            <div class="muscle-bar-item">
+                <div class="muscle-info">
+                    <span class="muscle-name">{{ muscle.display }}</span>
+                    <span class="muscle-count">{{ muscle.count }} sessions</span>
+                </div>
+                <div class="muscle-bar">
+                    <div class="muscle-bar-fill" style="width: {% widthratio muscle.count freq_recommendation.current 100 %}%;"></div>
+                </div>
+                <span class="muscle-status">
+                    {% if muscle.count == 0 %}
+                    <span class="status-badge critical">Not trained</span>
+                    {% else %}
+                    <span class="status-badge warning">Under-trained</span>
+                    {% endif %}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state small">
+            <i class="fa-solid fa-check-circle"></i>
+            <p>Great job! Your training is well balanced.</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Progressive Overload -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fa-solid fa-arrow-trend-up"></i> Progressive Overload</h3>
+        </div>
+        
+        {% if overload_recs %}
+        <div class="overload-list">
+            {% for rec in overload_recs %}
+            <a href="{% url 'exercise_progress' rec.exercise.id %}" class="overload-item">
+                <div class="overload-exercise">
+                    <span class="exercise-name">{{ rec.exercise.name }}</span>
+                    <span class="exercise-muscle">{{ rec.exercise.get_muscle_group_display }}</span>
+                </div>
+                <div class="overload-progress">
+                    <span class="current">{{ rec.current_pb }} kg</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                    <span class="suggested">{{ rec.suggested }} kg</span>
+                    <span class="increase">+{{ rec.increase|floatformat:1 }}</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state small">
+            <i class="fa-solid fa-dumbbell"></i>
+            <p>Log more workouts to get overload suggestions.</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Comeback Exercises -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> Time to Revisit</h3>
+        </div>
+        
+        {% if comeback_exercises %}
+        <div class="comeback-list">
+            {% for rec in comeback_exercises %}
+            <a href="{% url 'exercise_progress' rec.exercise.id %}" class="comeback-item">
+                <div class="comeback-icon">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </div>
+                <div class="comeback-content">
+                    <span class="exercise-name">{{ rec.exercise.name }}</span>
+                    <span class="last-info">{{ rec.last_weight }} kg x {{ rec.last_reps }} reps</span>
+                </div>
+                <span class="days-ago">{{ rec.days_ago }}d ago</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state small">
+            <i class="fa-solid fa-check"></i>
+            <p>You're keeping up with all your exercises!</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Try Something New -->
+    <div class="card full-width">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fa-solid fa-sparkles"></i> Try Something New</h3>
+            <a href="{% url 'exercises' %}" class="card-link">Browse All <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+        
+        {% if new_exercise_recs %}
+        <div class="new-exercises-grid">
+            {% for rec in new_exercise_recs %}
+            <a href="{% url 'exercise_progress' rec.exercise.id %}" class="new-exercise-card">
+                <div class="new-exercise-header">
+                    <span class="muscle-badge">{{ rec.exercise.get_muscle_group_display }}</span>
+                    {% if rec.exercise.equipment %}
+                    <span class="equip-badge">{{ rec.exercise.equipment }}</span>
+                    {% endif %}
+                </div>
+                <h4>{{ rec.exercise.name }}</h4>
+                <p class="reason">{{ rec.reason }}</p>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fa-solid fa-trophy"></i>
+            <p>You've tried a lot of exercises! Keep exploring the library.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    /* Today's Suggestion Card */
+    .today-card {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.1));
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .today-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .today-icon {
+        width: 56px;
+        height: 56px;
+        background: var(--accent);
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+        flex-shrink: 0;
+    }
+    
+    .today-title {
+        flex: 1;
+    }
+    
+    .today-title h2 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin: 0 0 0.25rem;
+    }
+    
+    .today-title p {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        margin: 0;
+    }
+    
+    .today-exercises {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    
+    .today-exercises .label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    
+    .exercise-chips {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .exercise-chip {
+        padding: 0.375rem 0.75rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .exercise-chip:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+    
+    /* Stats Row */
+    .stats-row {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .stat-mini {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        padding: 0.875rem 1rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+    }
+    
+    .stat-mini i {
+        font-size: 1rem;
+        color: var(--text-muted);
+    }
+    
+    .stat-mini .stat-num {
+        font-size: 1.125rem;
+        font-weight: 700;
+    }
+    
+    .stat-mini .stat-text {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .stat-mini.status-excellent i { color: #fbbf24; }
+    .stat-mini.status-excellent .stat-num { color: #fbbf24; }
+    .stat-mini.status-good i { color: #22c55e; }
+    .stat-mini.status-good .stat-num { color: #22c55e; }
+    .stat-mini.status-low i { color: #f59e0b; }
+    .stat-mini.status-low .stat-num { color: #f59e0b; }
+    
+    /* Tip Card */
+    .tip-card {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 1.25rem;
+        border-radius: 10px;
+        margin-bottom: 1.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .tip-card i {
+        font-size: 1rem;
+    }
+    
+    .tip-card.excellent {
+        background: rgba(251, 191, 36, 0.1);
+        border: 1px solid rgba(251, 191, 36, 0.3);
+        color: #fbbf24;
+    }
+    
+    .tip-card.good {
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        color: #22c55e;
+    }
+    
+    .tip-card.low {
+        background: rgba(249, 115, 22, 0.1);
+        border: 1px solid rgba(249, 115, 22, 0.3);
+        color: #f59e0b;
+    }
+    
+    /* Recommendations Grid */
+    .rec-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
+    
+    .rec-grid .full-width {
+        grid-column: 1 / -1;
+    }
+    
+    /* Muscle Bars */
+    .muscle-bars {
+        display: flex;
+        flex-direction: column;
+        gap: 0.875rem;
+    }
+    
+    .muscle-bar-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .muscle-info {
+        width: 100px;
+        flex-shrink: 0;
+    }
+    
+    .muscle-name {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+    
+    .muscle-count {
+        font-size: 0.6875rem;
+        color: var(--text-muted);
+    }
+    
+    .muscle-bar {
+        flex: 1;
+        height: 8px;
+        background: var(--bg-main);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    
+    .muscle-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #ef4444, #f59e0b);
+        border-radius: 4px;
+        min-width: 4px;
+    }
+    
+    .status-badge {
+        font-size: 0.625rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        font-weight: 600;
+    }
+    
+    .status-badge.critical {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+    }
+    
+    .status-badge.warning {
+        background: rgba(249, 115, 22, 0.15);
+        color: #f59e0b;
+    }
+    
+    /* Overload List */
+    .overload-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .overload-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem;
+        background: rgba(15, 23, 42, 0.5);
+        border-radius: 8px;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.2s;
+    }
+    
+    .overload-item:hover {
+        background: rgba(59, 130, 246, 0.1);
+    }
+    
+    .overload-exercise .exercise-name {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+    
+    .overload-exercise .exercise-muscle {
+        font-size: 0.6875rem;
+        color: var(--text-muted);
+    }
+    
+    .overload-progress {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+    }
+    
+    .overload-progress .current {
+        color: var(--text-muted);
+    }
+    
+    .overload-progress i {
+        font-size: 0.625rem;
+        color: var(--text-muted);
+    }
+    
+    .overload-progress .suggested {
+        font-weight: 600;
+        color: var(--accent);
+    }
+    
+    .overload-progress .increase {
+        font-size: 0.6875rem;
+        padding: 0.125rem 0.375rem;
+        background: rgba(34, 197, 94, 0.15);
+        color: #22c55e;
+        border-radius: 4px;
+        font-weight: 600;
+    }
+    
+    /* Comeback List */
+    .comeback-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .comeback-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: rgba(15, 23, 42, 0.5);
+        border-radius: 8px;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.2s;
+    }
+    
+    .comeback-item:hover {
+        background: rgba(59, 130, 246, 0.1);
+    }
+    
+    .comeback-icon {
+        width: 36px;
+        height: 36px;
+        background: rgba(139, 92, 246, 0.15);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #8b5cf6;
+        flex-shrink: 0;
+    }
+    
+    .comeback-content {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .comeback-content .exercise-name {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .comeback-content .last-info {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .days-ago {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        flex-shrink: 0;
+    }
+    
+    /* New Exercises Grid */
+    .new-exercises-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
+    
+    .new-exercise-card {
+        padding: 1rem;
+        background: rgba(15, 23, 42, 0.5);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.2s;
+    }
+    
+    .new-exercise-card:hover {
+        border-color: var(--accent);
+        transform: translateY(-2px);
+    }
+    
+    .new-exercise-header {
+        display: flex;
+        gap: 0.375rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .muscle-badge {
+        font-size: 0.625rem;
+        padding: 0.1875rem 0.5rem;
+        background: rgba(59, 130, 246, 0.15);
+        color: var(--accent);
+        border-radius: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        font-weight: 600;
+    }
+    
+    .equip-badge {
+        font-size: 0.625rem;
+        padding: 0.1875rem 0.5rem;
+        background: var(--bg-main);
+        color: var(--text-muted);
+        border-radius: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+    
+    .new-exercise-card h4 {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        margin: 0 0 0.375rem;
+    }
+    
+    .new-exercise-card .reason {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin: 0;
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: var(--text-muted);
+    }
+    
+    .empty-state.small {
+        padding: 1.5rem;
+    }
+    
+    .empty-state i {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        display: block;
+        opacity: 0.5;
+    }
+    
+    .empty-state p {
+        margin: 0;
+        font-size: 0.875rem;
+    }
+    
+    .card-link {
+        font-size: 0.8125rem;
+        color: var(--accent);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    
+    .card-link:hover {
+        text-decoration: underline;
+    }
+    
+    @media (max-width: 1024px) {
+        .rec-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+        
+        .new-exercises-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .today-header {
+            flex-wrap: wrap;
+        }
+        
+        .today-header .btn {
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+        
+        .stats-row {
+            flex-direction: column;
+        }
+        
+        .rec-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .new-exercises-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}

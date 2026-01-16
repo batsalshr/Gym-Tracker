@@ -1,95 +1,259 @@
 {% extends 'base.html' %}
 
-{% block title %}1RM Calculator - IronLog{% endblock %}
-{% block page_title %}1RM Calculator{% endblock %}
+{% block title %}Calculators - IronLog{% endblock %}
+{% block page_title %}Fitness Calculators{% endblock %}
+
+{% block header_actions %}
+<div class="calc-tabs">
+    <button class="calc-tab active" onclick="showCalc('1rm')">
+        <i class="fa-solid fa-dumbbell"></i> 1RM Calculator
+    </button>
+    <button class="calc-tab" onclick="showCalc('bmi')">
+        <i class="fa-solid fa-weight-scale"></i> BMI Calculator
+    </button>
+</div>
+{% endblock %}
 
 {% block content %}
-<div class="calc-layout">
-    <!-- Calculator -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">Calculate Your One Rep Max</h3>
-        </div>
-        
-        <div class="calc-form">
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Weight Lifted</label>
-                    <div class="input-with-unit">
-                        <input type="number" id="weight" class="form-control" placeholder="0" step="0.5" oninput="calculate()">
-                        <span class="unit">kg</span>
+<!-- 1RM Calculator Section -->
+<div id="1rm-calc" class="calc-section">
+    <div class="calc-layout">
+        <!-- Calculator -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fa-solid fa-calculator"></i> Calculate Your One Rep Max</h3>
+            </div>
+            
+            <div class="calc-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Weight Lifted</label>
+                        <div class="input-with-unit">
+                            <input type="number" id="orm-weight" class="form-control" placeholder="0" step="0.5" oninput="calculate1RM()">
+                            <span class="unit">kg</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Reps Performed</label>
+                        <input type="number" id="orm-reps" class="form-control" placeholder="0" min="1" max="30" oninput="calculate1RM()">
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Reps Performed</label>
-                    <input type="number" id="reps" class="form-control" placeholder="0" min="1" max="30" oninput="calculate()">
+                
+                <!-- Quick Reps -->
+                <div class="quick-reps">
+                    <button type="button" class="rep-btn" onclick="setReps(3)">3</button>
+                    <button type="button" class="rep-btn" onclick="setReps(5)">5</button>
+                    <button type="button" class="rep-btn" onclick="setReps(8)">8</button>
+                    <button type="button" class="rep-btn" onclick="setReps(10)">10</button>
+                    <button type="button" class="rep-btn" onclick="setReps(12)">12</button>
                 </div>
             </div>
             
-            <!-- Quick Reps -->
-            <div class="quick-reps">
-                <button type="button" class="rep-btn" onclick="setReps(3)">3</button>
-                <button type="button" class="rep-btn" onclick="setReps(5)">5</button>
-                <button type="button" class="rep-btn" onclick="setReps(8)">8</button>
-                <button type="button" class="rep-btn" onclick="setReps(10)">10</button>
-                <button type="button" class="rep-btn" onclick="setReps(12)">12</button>
+            <!-- Result -->
+            <div class="result-box" id="orm-result" style="display: none;">
+                <div class="result-label">Estimated 1RM</div>
+                <div class="result-value"><span id="oneRM">0</span> kg</div>
+                <div class="result-formula" id="orm-formula"></div>
             </div>
         </div>
         
-        <!-- Result -->
-        <div class="result-box" id="result" style="display: none;">
-            <div class="result-label">Estimated 1RM</div>
-            <div class="result-value"><span id="oneRM">0</span> kg</div>
-            <div class="result-formula" id="formula"></div>
-        </div>
-    </div>
-    
-    <!-- Percentage Table -->
-    <div class="card" id="percentTable" style="display: none;">
-        <div class="card-header">
-            <h3 class="card-title">Training Percentages</h3>
+        <!-- Percentage Table -->
+        <div class="card" id="percentTable" style="display: none;">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fa-solid fa-table"></i> Training Percentages</h3>
+            </div>
+            
+            <table class="percent-table">
+                <thead>
+                    <tr>
+                        <th>%</th>
+                        <th>Weight</th>
+                        <th>Est. Reps</th>
+                        <th>Use For</th>
+                    </tr>
+                </thead>
+                <tbody id="percentBody">
+                </tbody>
+            </table>
         </div>
         
-        <table class="percent-table">
-            <thead>
-                <tr>
-                    <th>%</th>
-                    <th>Weight</th>
-                    <th>Est. Reps</th>
-                    <th>Use For</th>
-                </tr>
-            </thead>
-            <tbody id="percentBody">
-            </tbody>
-        </table>
-    </div>
-    
-    <!-- Info -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">About 1RM</h3>
+        <!-- Info -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fa-solid fa-circle-info"></i> About 1RM</h3>
+            </div>
+            <div class="info-content">
+                <p><strong>One Rep Max (1RM)</strong> is the maximum weight you can lift for a single repetition with proper form.</p>
+                
+                <h4>Formulas Used:</h4>
+                <ul>
+                    <li><strong>Epley:</strong> weight x (1 + reps/30)</li>
+                    <li><strong>Brzycki:</strong> weight x 36 / (37 - reps)</li>
+                    <li><strong>Lander:</strong> 100 x weight / (101.3 - 2.67 x reps)</li>
+                </ul>
+                
+                <h4>Tips:</h4>
+                <ul>
+                    <li>Most accurate with 1-10 reps</li>
+                    <li>Use a weight you can lift with good form</li>
+                    <li>Results are estimates, actual 1RM may vary</li>
+                </ul>
+            </div>
         </div>
-        <div class="info-content">
-            <p><strong>One Rep Max (1RM)</strong> is the maximum weight you can lift for a single repetition with proper form.</p>
+    </div>
+</div>
+
+<!-- BMI Calculator Section -->
+<div id="bmi-calc" class="calc-section" style="display: none;">
+    <div class="calc-layout">
+        <!-- Calculator -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fa-solid fa-calculator"></i> Calculate Your BMI</h3>
+            </div>
             
-            <h4>Formulas Used:</h4>
-            <ul>
-                <li><strong>Epley:</strong> weight × (1 + reps/30)</li>
-                <li><strong>Brzycki:</strong> weight × 36 / (37 - reps)</li>
-                <li><strong>Lander:</strong> 100 × weight / (101.3 - 2.67 × reps)</li>
-            </ul>
+            <div class="calc-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Height</label>
+                        <div class="input-with-unit">
+                            <input type="number" id="bmi-height" class="form-control" placeholder="170" step="1" oninput="calculateBMI()">
+                            <span class="unit">cm</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Weight</label>
+                        <div class="input-with-unit">
+                            <input type="number" id="bmi-weight" class="form-control" placeholder="70" step="0.1" oninput="calculateBMI()">
+                            <span class="unit">kg</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Heights -->
+                <div class="quick-reps">
+                    <button type="button" class="rep-btn" onclick="setHeight(160)">160cm</button>
+                    <button type="button" class="rep-btn" onclick="setHeight(170)">170cm</button>
+                    <button type="button" class="rep-btn" onclick="setHeight(175)">175cm</button>
+                    <button type="button" class="rep-btn" onclick="setHeight(180)">180cm</button>
+                    <button type="button" class="rep-btn" onclick="setHeight(185)">185cm</button>
+                </div>
+            </div>
             
-            <h4>Tips:</h4>
-            <ul>
-                <li>Most accurate with 1-10 reps</li>
-                <li>Use a weight you can lift with good form</li>
-                <li>Results are estimates, actual 1RM may vary</li>
-            </ul>
+            <!-- Result -->
+            <div class="bmi-result-box" id="bmi-result" style="display: none;">
+                <div class="bmi-gauge">
+                    <div class="gauge-bar">
+                        <div class="gauge-fill" id="gauge-fill"></div>
+                        <div class="gauge-marker" id="gauge-marker"></div>
+                    </div>
+                    <div class="gauge-labels">
+                        <span>Underweight</span>
+                        <span>Normal</span>
+                        <span>Overweight</span>
+                        <span>Obese</span>
+                    </div>
+                </div>
+                <div class="bmi-value-display">
+                    <span class="bmi-number" id="bmi-value">0</span>
+                    <span class="bmi-category" id="bmi-category">--</span>
+                </div>
+                <div class="bmi-ranges" id="bmi-ranges"></div>
+            </div>
+        </div>
+        
+        <!-- Weight Ranges -->
+        <div class="card" id="weightRanges" style="display: none;">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fa-solid fa-chart-line"></i> Healthy Weight Range</h3>
+            </div>
+            
+            <div class="weight-range-content">
+                <div class="range-item">
+                    <div class="range-label">Minimum Healthy</div>
+                    <div class="range-value" id="min-weight">--</div>
+                </div>
+                <div class="range-item ideal">
+                    <div class="range-label">Ideal Weight</div>
+                    <div class="range-value" id="ideal-weight">--</div>
+                </div>
+                <div class="range-item">
+                    <div class="range-label">Maximum Healthy</div>
+                    <div class="range-value" id="max-weight">--</div>
+                </div>
+            </div>
+            
+            <div class="weight-diff" id="weight-diff"></div>
+        </div>
+        
+        <!-- Info -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fa-solid fa-circle-info"></i> About BMI</h3>
+            </div>
+            <div class="info-content">
+                <p><strong>Body Mass Index (BMI)</strong> is a measure of body fat based on height and weight.</p>
+                
+                <h4>BMI Categories:</h4>
+                <ul>
+                    <li><strong>Underweight:</strong> Below 18.5</li>
+                    <li><strong>Normal:</strong> 18.5 - 24.9</li>
+                    <li><strong>Overweight:</strong> 25.0 - 29.9</li>
+                    <li><strong>Obese:</strong> 30.0 and above</li>
+                </ul>
+                
+                <h4>Limitations:</h4>
+                <ul>
+                    <li>Does not account for muscle mass</li>
+                    <li>Athletes may have higher BMI due to muscle</li>
+                    <li>Use alongside other health metrics</li>
+                </ul>
+            </div>
         </div>
     </div>
 </div>
 
 <style>
+    .calc-tabs {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .calc-tab {
+        padding: 0.5rem 1rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+    
+    .calc-tab:hover {
+        border-color: var(--accent);
+        color: var(--text-primary);
+    }
+    
+    .calc-tab.active {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: white;
+    }
+    
+    .calc-section {
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
     .calc-layout {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -129,7 +293,7 @@
         font-weight: 500;
     }
     
-    #reps {
+    #orm-reps {
         font-size: 1.5rem;
         font-weight: 700;
     }
@@ -157,6 +321,7 @@
         color: var(--text-primary);
     }
     
+    /* 1RM Result */
     .result-box {
         background: linear-gradient(135deg, var(--accent-light), rgba(99, 102, 241, 0.1));
         border: 1px solid var(--accent);
@@ -186,6 +351,143 @@
         color: var(--text-muted);
     }
     
+    /* BMI Result */
+    .bmi-result-box {
+        background: linear-gradient(145deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+    }
+    
+    .bmi-gauge {
+        margin-bottom: 1.5rem;
+    }
+    
+    .gauge-bar {
+        height: 12px;
+        background: linear-gradient(90deg, 
+            #3b82f6 0%, #3b82f6 23%,
+            #22c55e 23%, #22c55e 50%,
+            #f59e0b 50%, #f59e0b 73%,
+            #ef4444 73%, #ef4444 100%
+        );
+        border-radius: 6px;
+        position: relative;
+        margin-bottom: 0.5rem;
+    }
+    
+    .gauge-marker {
+        position: absolute;
+        top: -4px;
+        width: 4px;
+        height: 20px;
+        background: white;
+        border-radius: 2px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        transform: translateX(-50%);
+        transition: left 0.3s ease;
+    }
+    
+    .gauge-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.625rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+    
+    .bmi-value-display {
+        text-align: center;
+        padding: 1rem 0;
+    }
+    
+    .bmi-number {
+        font-size: 3.5rem;
+        font-weight: 800;
+        line-height: 1;
+        display: block;
+    }
+    
+    .bmi-category {
+        font-size: 1rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 0.5rem;
+        display: block;
+    }
+    
+    .bmi-category.underweight { color: #3b82f6; }
+    .bmi-category.normal { color: #22c55e; }
+    .bmi-category.overweight { color: #f59e0b; }
+    .bmi-category.obese { color: #ef4444; }
+    
+    .bmi-number.underweight { color: #3b82f6; }
+    .bmi-number.normal { color: #22c55e; }
+    .bmi-number.overweight { color: #f59e0b; }
+    .bmi-number.obese { color: #ef4444; }
+    
+    /* Weight Ranges */
+    .weight-range-content {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .range-item {
+        text-align: center;
+        padding: 1rem;
+        background: rgba(15, 23, 42, 0.5);
+        border-radius: var(--radius);
+    }
+    
+    .range-item.ideal {
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+    
+    .range-label {
+        font-size: 0.6875rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.375rem;
+    }
+    
+    .range-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+    
+    .range-item.ideal .range-value {
+        color: #22c55e;
+    }
+    
+    .weight-diff {
+        text-align: center;
+        padding: 0.75rem;
+        border-radius: var(--radius);
+        font-size: 0.875rem;
+    }
+    
+    .weight-diff.gain {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+    }
+    
+    .weight-diff.lose {
+        background: rgba(249, 115, 22, 0.1);
+        color: #f59e0b;
+    }
+    
+    .weight-diff.ideal {
+        background: rgba(34, 197, 94, 0.1);
+        color: #22c55e;
+    }
+    
+    /* Percent Table */
     .percent-table {
         width: 100%;
     }
@@ -245,11 +547,24 @@
     }
     
     @media (max-width: 768px) {
+        .calc-tabs {
+            width: 100%;
+        }
+        
+        .calc-tab {
+            flex: 1;
+            justify-content: center;
+        }
+        
         .calc-layout {
             grid-template-columns: 1fr;
         }
         
         .form-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .weight-range-content {
             grid-template-columns: 1fr;
         }
     }
@@ -258,34 +573,41 @@
 
 {% block extra_js %}
 <script>
-function setReps(r) {
-    document.getElementById('reps').value = r;
-    calculate();
+function showCalc(type) {
+    // Update tabs
+    document.querySelectorAll('.calc-tab').forEach(tab => tab.classList.remove('active'));
+    event.target.closest('.calc-tab').classList.add('active');
+    
+    // Show/hide sections
+    document.querySelectorAll('.calc-section').forEach(s => s.style.display = 'none');
+    document.getElementById(type + '-calc').style.display = 'block';
 }
 
-function calculate() {
-    const weight = parseFloat(document.getElementById('weight').value) || 0;
-    const reps = parseInt(document.getElementById('reps').value) || 0;
+// 1RM Calculator
+function setReps(r) {
+    document.getElementById('orm-reps').value = r;
+    calculate1RM();
+}
+
+function calculate1RM() {
+    const weight = parseFloat(document.getElementById('orm-weight').value) || 0;
+    const reps = parseInt(document.getElementById('orm-reps').value) || 0;
     
     if (weight <= 0 || reps <= 0) {
-        document.getElementById('result').style.display = 'none';
+        document.getElementById('orm-result').style.display = 'none';
         document.getElementById('percentTable').style.display = 'none';
         return;
     }
     
-    // Calculate using multiple formulas and average
     const epley = weight * (1 + reps / 30);
     const brzycki = weight * 36 / (37 - reps);
     const lander = (100 * weight) / (101.3 - 2.67 * reps);
-    
-    // Use average for more accuracy
-    const oneRM = Math.round((epley + brzycki + lander) / 3 * 2) / 2; // Round to 0.5
+    const oneRM = Math.round((epley + brzycki + lander) / 3 * 2) / 2;
     
     document.getElementById('oneRM').textContent = oneRM.toFixed(1);
-    document.getElementById('formula').textContent = `Based on ${weight}kg × ${reps} reps (Epley/Brzycki/Lander average)`;
-    document.getElementById('result').style.display = 'block';
+    document.getElementById('orm-formula').textContent = `Based on ${weight}kg x ${reps} reps`;
+    document.getElementById('orm-result').style.display = 'block';
     
-    // Generate percentage table
     const percentages = [
         { pct: 100, reps: '1', use: 'Max Test' },
         { pct: 95, reps: '2', use: 'Peaking' },
@@ -313,6 +635,83 @@ function calculate() {
     
     document.getElementById('percentBody').innerHTML = tableHtml;
     document.getElementById('percentTable').style.display = 'block';
+}
+
+// BMI Calculator
+function setHeight(h) {
+    document.getElementById('bmi-height').value = h;
+    calculateBMI();
+}
+
+function calculateBMI() {
+    const height = parseFloat(document.getElementById('bmi-height').value) || 0;
+    const weight = parseFloat(document.getElementById('bmi-weight').value) || 0;
+    
+    if (height <= 0 || weight <= 0) {
+        document.getElementById('bmi-result').style.display = 'none';
+        document.getElementById('weightRanges').style.display = 'none';
+        return;
+    }
+    
+    const heightM = height / 100;
+    const bmi = weight / (heightM * heightM);
+    
+    let category, categoryClass;
+    if (bmi < 18.5) {
+        category = 'Underweight';
+        categoryClass = 'underweight';
+    } else if (bmi < 25) {
+        category = 'Normal';
+        categoryClass = 'normal';
+    } else if (bmi < 30) {
+        category = 'Overweight';
+        categoryClass = 'overweight';
+    } else {
+        category = 'Obese';
+        categoryClass = 'obese';
+    }
+    
+    // Update display
+    const bmiNum = document.getElementById('bmi-value');
+    const bmiCat = document.getElementById('bmi-category');
+    
+    bmiNum.textContent = bmi.toFixed(1);
+    bmiNum.className = 'bmi-number ' + categoryClass;
+    
+    bmiCat.textContent = category;
+    bmiCat.className = 'bmi-category ' + categoryClass;
+    
+    // Update gauge marker (BMI 15-40 range mapped to 0-100%)
+    const markerPos = Math.min(100, Math.max(0, ((bmi - 15) / 25) * 100));
+    document.getElementById('gauge-marker').style.left = markerPos + '%';
+    
+    document.getElementById('bmi-result').style.display = 'block';
+    
+    // Calculate weight ranges
+    const minHealthy = (18.5 * heightM * heightM).toFixed(1);
+    const maxHealthy = (24.9 * heightM * heightM).toFixed(1);
+    const idealWeight = (21.7 * heightM * heightM).toFixed(1);
+    
+    document.getElementById('min-weight').textContent = minHealthy + ' kg';
+    document.getElementById('ideal-weight').textContent = idealWeight + ' kg';
+    document.getElementById('max-weight').textContent = maxHealthy + ' kg';
+    
+    // Weight difference
+    const diffEl = document.getElementById('weight-diff');
+    const diff = weight - parseFloat(idealWeight);
+    
+    if (Math.abs(diff) < 2) {
+        diffEl.innerHTML = '<i class="fa-solid fa-check"></i> You are at a healthy weight!';
+        diffEl.className = 'weight-diff ideal';
+    } else if (diff > 0) {
+        diffEl.innerHTML = `<i class="fa-solid fa-arrow-down"></i> ${diff.toFixed(1)} kg above ideal weight`;
+        diffEl.className = 'weight-diff lose';
+    } else {
+        diffEl.innerHTML = `<i class="fa-solid fa-arrow-up"></i> ${Math.abs(diff).toFixed(1)} kg below ideal weight`;
+        diffEl.className = 'weight-diff gain';
+    }
+    
+    document.getElementById('weightRanges').style.display = 'block';
 }
 </script>
 {% endblock %}

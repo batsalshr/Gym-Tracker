@@ -57,6 +57,7 @@ urlpatterns = [
     path('calendar/', views.CalendarView.as_view(), name='calendar'),
     path('charts/', views.ChartsView.as_view(), name='charts'),
     path('achievements/', views.AchievementsView.as_view(), name='achievements'),
+    path('recommendations/', views.RecommendationsView.as_view(), name='recommendations'),
     
     # API
     path('api/exercise/<int:exercise_id>/suggestion/', views.ExerciseSuggestionAPI.as_view(), name='api_suggestion'),
