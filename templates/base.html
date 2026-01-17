@@ -2,14 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{% block title %}IronLog{% endblock %}</title>
-    <script>
-        (function() {
-            const theme = localStorage.getItem('theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', theme);
-        })();
-    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -41,47 +35,16 @@
             --radius: 12px;
             --radius-lg: 16px;
             --radius-xl: 20px;
-        }
-        
-        [data-theme="light"] {
-            --bg-main: #f1f5f9;
-            --bg-card: #ffffff;
-            --bg-card-hover: #f8fafc;
-            --bg-sidebar: #ffffff;
-            --bg-input: #f1f5f9;
-            --text-primary: #0f172a;
-            --text-secondary: #475569;
-            --text-muted: #94a3b8;
-            --border: #e2e8f0;
-            --border-light: #f1f5f9;
+            --font-mono: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
-        /* Global custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: var(--border);
-            border-radius: 4px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-muted);
-        }
-        
-        /* Firefox */
-        * {
-            scrollbar-width: thin;
-            scrollbar-color: var(--border) transparent;
-        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+        * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
         
         body {
             font-family: 'Inter', -apple-system, sans-serif;
@@ -90,6 +53,7 @@
             line-height: 1.5;
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
         }
         
         .app { display: flex; min-height: 100vh; }
@@ -117,169 +81,104 @@
             gap: 0.625rem;
             text-decoration: none;
             color: var(--text-primary);
-            font-weight: 700;
-            font-size: 1.125rem;
         }
         
         .logo-icon {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, var(--accent) 0%, #6366f1 100%);
-            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), #6366f1);
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.75rem;
             font-weight: 800;
+            font-size: 0.875rem;
             color: white;
+        }
+        
+        .logo-text {
+            font-size: 1.25rem;
+            font-weight: 700;
         }
         
         .sidebar-nav {
             flex: 1;
-            padding: 1rem 0;
             overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: var(--border) transparent;
+            padding: 0.75rem 0;
         }
         
-        /* Custom scrollbar for webkit browsers */
-        .sidebar-nav::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .sidebar-nav::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        
-        .sidebar-nav::-webkit-scrollbar-thumb {
-            background: var(--border);
-            border-radius: 3px;
-        }
-        
-        .sidebar-nav::-webkit-scrollbar-thumb:hover {
-            background: var(--text-muted);
-        }
-        
-        /* Hide scrollbar when not hovering */
-        .sidebar-nav {
-            scrollbar-gutter: stable;
-        }
-        
-        .sidebar:hover .sidebar-nav::-webkit-scrollbar-thumb {
-            background: var(--border);
-        }
-        
-        .sidebar-nav:not(:hover)::-webkit-scrollbar-thumb {
-            background: transparent;
-        }
-        
-        .nav-section { margin-bottom: 1.5rem; }
-        
+        .nav-section { padding: 0.5rem 0.75rem; }
         .nav-label {
-            padding: 0 1rem;
             font-size: 0.625rem;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.08em;
             color: var(--text-muted);
-            margin-bottom: 0.5rem;
+            padding: 0.75rem 0.75rem 0.375rem;
         }
         
         .nav-item {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            padding: 0.625rem 1rem;
+            padding: 0.625rem 0.875rem;
             margin: 0.125rem 0.5rem;
+            border-radius: 10px;
             color: var(--text-secondary);
             text-decoration: none;
             font-size: 0.875rem;
             font-weight: 500;
-            border-radius: var(--radius);
             transition: all 0.15s;
         }
         
-        .nav-item:hover { background: var(--bg-card); color: var(--text-primary); }
-        .nav-item.active { background: var(--accent-light); color: var(--accent); }
-        
-        .nav-icon {
-            width: 18px;
-            height: 18px;
-            opacity: 0.7;
-        }
-        
-        .nav-item.active .nav-icon { opacity: 1; }
-        
+        .nav-item:hover { color: var(--text-primary); background: var(--bg-card); }
+        .nav-item.active { background: var(--accent); color: white; }
+        .nav-item i { width: 18px; text-align: center; font-size: 0.9375rem; }
         .nav-badge {
             margin-left: auto;
-            background: var(--accent);
-            color: white;
-            font-size: 0.625rem;
+            font-size: 0.6875rem;
+            padding: 0.125rem 0.5rem;
+            background: var(--accent-light);
+            color: var(--accent);
+            border-radius: 999px;
             font-weight: 600;
-            padding: 0.125rem 0.375rem;
-            border-radius: 4px;
         }
         
         .sidebar-footer {
             padding: 1rem;
             border-top: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-        
-        .theme-btn {
-            width: 100%;
-            padding: 0.5rem;
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            font-size: 1.25rem;
-            opacity: 0.7;
-            transition: opacity 0.2s;
-            text-align: center;
-        }
-        
-        .theme-btn:hover {
-            opacity: 1;
         }
         
         .user-info {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            padding: 0.625rem 0.75rem;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
+            gap: 0.625rem;
+            padding: 0.5rem;
+            border-radius: 10px;
             text-decoration: none;
             color: var(--text-primary);
-            transition: all 0.2s;
+            transition: background 0.15s;
         }
         
-        .user-info:hover {
-            border-color: var(--accent);
-            background: var(--bg-card-hover);
-        }
+        .user-info:hover { background: var(--bg-card); }
         
         .user-avatar {
             width: 32px;
             height: 32px;
-            background: linear-gradient(135deg, var(--accent), #6366f1);
-            border-radius: 50%;
+            background: var(--accent);
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 700;
-            font-size: 0.875rem;
+            font-weight: 600;
+            font-size: 0.8125rem;
             color: white;
-            flex-shrink: 0;
         }
         
         .user-name {
             flex: 1;
-            font-weight: 600;
             font-size: 0.875rem;
+            font-weight: 500;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -288,99 +187,40 @@
         .logout-link {
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 0.5rem;
+            margin-top: 0.5rem;
             padding: 0.5rem;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-decoration: none;
-            border-radius: var(--radius);
-            transition: all 0.2s;
-        }
-        
-        .logout-link:hover {
-            color: var(--danger);
-            background: rgba(239, 68, 68, 0.1);
-        }
-        
-        .logout-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.375rem;
-            color: var(--text-muted);
-            text-decoration: none;
-            border-radius: var(--radius);
-            transition: all 0.2s;
-        }
-        
-        .logout-btn:hover {
-            color: var(--danger);
-            background: rgba(239, 68, 68, 0.1);
-        }
-        
-        .theme-toggle {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            width: 100%;
-            padding: 0.625rem 0.75rem;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            color: var(--text-secondary);
             font-size: 0.8125rem;
-            font-weight: 500;
-            cursor: pointer;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-radius: 8px;
             transition: all 0.15s;
         }
         
-        .theme-toggle:hover { border-color: var(--accent); color: var(--text-primary); }
+        .logout-link:hover { color: var(--danger); background: var(--danger-light); }
         
-        .toggle-switch {
-            margin-left: auto;
-            width: 36px;
-            height: 20px;
-            background: var(--border);
-            border-radius: 10px;
-            position: relative;
-            transition: background 0.2s;
-        }
-        
-        .toggle-switch::after {
-            content: '';
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            background: white;
-            border-radius: 50%;
-            top: 2px;
-            left: 2px;
-            transition: transform 0.2s;
-        }
-        
-        [data-theme="light"] .toggle-switch { background: var(--accent); }
-        [data-theme="light"] .toggle-switch::after { transform: translateX(16px); }
-        
-        /* Main */
+        /* Main Content */
         .main {
             flex: 1;
             margin-left: 220px;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            max-width: calc(100vw - 220px);
+            overflow-x: hidden;
         }
         
         .header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 1rem 2rem;
             background: var(--bg-sidebar);
-            border-bottom: 1px solid var(--border);
             position: sticky;
             top: 0;
             z-index: 50;
+            flex-shrink: 0;
         }
         
         .header-title {
@@ -388,436 +228,44 @@
             font-weight: 700;
         }
         
-        .header-actions { display: flex; align-items: center; gap: 0.75rem; }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
         
         .header-user {
             width: 36px;
             height: 36px;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            border-radius: 50%;
+            background: var(--accent);
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.875rem;
             font-weight: 600;
+            font-size: 0.875rem;
             color: white;
         }
         
         .content {
             flex: 1;
-            padding: 2rem;
-            max-width: 1400px;
+            padding: 1.5rem;
+            padding-bottom: 100px;
+            overflow-x: hidden;
             width: 100%;
-            margin: 0 auto;
-        }
-        
-        /* Cards */
-        .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 1.25rem;
-        }
-        
-        .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-        }
-        
-        .card-title {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9375rem;
-            font-weight: 600;
-        }
-        
-        .card-link {
-            font-size: 0.8125rem;
-            color: var(--text-muted);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-        
-        .card-link:hover { color: var(--accent); }
-        
-        /* Buttons */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.625rem 1.25rem;
-            font-size: 0.875rem;
-            font-weight: 600;
-            border-radius: var(--radius);
-            border: none;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.15s;
-            font-family: inherit;
-        }
-        
-        .btn-primary {
-            background: var(--accent);
-            color: white;
-            box-shadow: 0 2px 8px var(--accent-glow);
-        }
-        
-        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
-        
-        .btn-secondary {
-            background: var(--bg-card);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-        }
-        
-        .btn-secondary:hover { border-color: var(--accent); background: var(--bg-card-hover); }
-        
-        .btn-ghost {
-            background: transparent;
-            color: var(--text-secondary);
-            padding: 0.5rem;
-        }
-        
-        .btn-ghost:hover { color: var(--text-primary); background: var(--bg-card); }
-        
-        .btn-sm { padding: 0.5rem 0.875rem; font-size: 0.8125rem; }
-        .btn-icon { padding: 0.5rem; width: 36px; height: 36px; }
-        
-        /* Forms */
-        .form-group { margin-bottom: 1rem; }
-        
-        .form-label {
-            display: block;
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            margin-bottom: 0.375rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        
-        .form-control {
-            width: 100%;
-            padding: 0.625rem 0.875rem;
-            font-size: 0.875rem;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            background: var(--bg-input);
-            color: var(--text-primary);
-            font-family: inherit;
-            transition: border-color 0.15s;
-        }
-        
-        .form-control:focus { outline: none; border-color: var(--accent); }
-        .form-control::placeholder { color: var(--text-muted); }
-        
-        select.form-control {
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 0.75rem center;
-            padding-right: 2rem;
-        }
-        
-        /* Stats */
-        .stat-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 1rem 1.25rem;
+            max-width: 100%;
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
-        }
-        
-        .stat-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: var(--radius);
-            display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 1.125rem;
         }
         
-        .stat-icon.blue { background: var(--accent-light); color: var(--accent); }
-        .stat-icon.green { background: var(--success-light); color: var(--success); }
-        .stat-icon.orange { background: var(--warning-light); color: var(--warning); }
-        .stat-icon.gold { background: var(--gold-light); color: var(--gold); }
-        
-        .stat-label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-decoration: underline;
-            text-decoration-style: dotted;
-            text-underline-offset: 2px;
+        .content > * {
+            width: 100%;
+            max-width: 1200px;
         }
         
-        .stat-value {
-            font-size: 1.75rem;
-            font-weight: 700;
-            line-height: 1;
-            color: var(--accent);
-        }
-        
-        .stat-sub {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-        
-        /* Badge */
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.25rem 0.625rem;
-            font-size: 0.6875rem;
-            font-weight: 600;
-            border-radius: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.02em;
-        }
-        
-        .badge-primary { background: var(--accent-light); color: var(--accent); }
-        .badge-success { background: var(--success-light); color: var(--success); }
-        .badge-warning { background: var(--warning-light); color: var(--warning); }
-        
-        /* Table */
-        table { width: 100%; border-collapse: collapse; }
-        
-        th, td {
-            text-align: left;
-            padding: 0.75rem;
-            border-bottom: 1px solid var(--border);
-        }
-        
-        th {
-            font-size: 0.6875rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-muted);
-        }
-        
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background: var(--bg-card-hover); }
-        
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 3rem 1.5rem;
-            color: var(--text-secondary);
-        }
-        
-        .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
-        .empty-state h3 { font-size: 1.125rem; margin-bottom: 0.5rem; color: var(--text-primary); }
-        .empty-state p { margin-bottom: 1.5rem; }
-        
-        /* Workout Card */
-        .workout-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem;
-            background: var(--bg-card-hover);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            margin-bottom: 0.75rem;
-            text-decoration: none;
-            color: var(--text-primary);
-            transition: all 0.15s;
-        }
-        
-        .workout-item:hover { border-color: var(--accent); }
-        
-        .workout-date {
-            background: var(--accent);
-            color: white;
-            padding: 0.5rem 0.625rem;
-            border-radius: var(--radius);
-            text-align: center;
-            min-width: 48px;
-        }
-        
-        .workout-date-day { font-size: 1.125rem; font-weight: 700; line-height: 1; }
-        .workout-date-month { font-size: 0.625rem; text-transform: uppercase; opacity: 0.9; }
-        
-        .workout-info { flex: 1; min-width: 0; }
-        .workout-title { font-weight: 600; margin-bottom: 0.125rem; }
-        
-        .workout-exercises {
-            font-size: 0.8125rem;
-            color: var(--text-muted);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .workout-meta {
-            display: flex;
-            gap: 1rem;
-            margin-top: 0.375rem;
-            font-size: 0.8125rem;
-            color: var(--text-secondary);
-        }
-        
-        .workout-meta strong { color: var(--text-primary); }
-        
-        .workout-actions {
-            display: flex;
-            gap: 0.25rem;
-        }
-        
-        /* PR Item */
-        .pr-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid var(--border);
-        }
-        
-        .pr-item:last-child { border-bottom: none; }
-        
-        .pr-info { flex: 1; }
-        .pr-name { font-weight: 500; font-size: 0.875rem; }
-        .pr-group { font-size: 0.75rem; color: var(--text-muted); }
-        
-        .pr-value {
-            text-align: right;
-            font-weight: 700;
-            color: var(--gold);
-        }
-        
-        .pr-value small { font-weight: 400; color: var(--text-muted); font-size: 0.75rem; }
-        
-        .pr-badge {
-            background: linear-gradient(135deg, #fbbf24, #f59e0b);
-            color: #1a1a1a;
-            font-size: 0.5rem;
-            font-weight: 700;
-            padding: 0.125rem 0.25rem;
-            border-radius: 3px;
-        }
-        
-        /* Progress Bar */
-        .progress-bar {
-            height: 6px;
-            background: var(--border);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent), #6366f1);
-            border-radius: 3px;
-            transition: width 0.3s;
-        }
-        
-        /* Toast */
-        .toast-container {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        
-        .toast {
-            padding: 0.875rem 1.25rem;
-            border-radius: var(--radius);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            animation: slideIn 0.2s ease-out;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-        
-        .toast-success { background: var(--success); color: white; }
-        .toast-error { background: var(--danger); color: white; }
-        
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        
-        /* Autocomplete */
-        .autocomplete-wrapper { position: relative; }
-        
-        .autocomplete-results {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-            max-height: 300px;
-            overflow-y: auto;
-            z-index: 100;
-            display: none;
-            margin-top: 0.25rem;
-        }
-        
-        .autocomplete-results.show { display: block; }
-        
-        .autocomplete-group {
-            padding: 0.5rem 0.875rem;
-            font-size: 0.625rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-muted);
-            background: var(--bg-main);
-        }
-        
-        .autocomplete-item {
-            padding: 0.625rem 0.875rem;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            transition: background 0.1s;
-        }
-        
-        .autocomplete-item:last-child { border-bottom: none; }
-        .autocomplete-item:hover, .autocomplete-item.selected { background: var(--accent-light); }
-        .autocomplete-item-name { font-weight: 500; font-size: 0.875rem; }
-        .autocomplete-item-meta { font-size: 0.75rem; color: var(--text-muted); }
-        
-        /* Chip */
-        .chip {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            font-size: 0.8125rem;
-            font-weight: 500;
-            border-radius: 999px;
-            border: 1px solid var(--border);
-            background: var(--bg-card);
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.15s;
-            gap: 0.375rem;
-        }
-        
-        .chip:hover { border-color: var(--accent); color: var(--text-primary); }
-        .chip.active, .chip:has(input:checked) { background: var(--accent); border-color: var(--accent); color: white; }
-        .chip input { position: absolute; opacity: 0; pointer-events: none; }
-        
-        /* Mobile */
+        /* Bottom Navigation - Mobile */
         .bottom-nav {
             display: none;
             position: fixed;
@@ -826,31 +274,34 @@
             right: 0;
             background: var(--bg-sidebar);
             border-top: 1px solid var(--border);
-            padding: 0.5rem 0;
-            padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
-            z-index: 100;
+            z-index: 1000;
+            padding-bottom: env(safe-area-inset-bottom);
         }
         
         .bottom-nav-items {
             display: flex;
-            justify-content: space-around;
             align-items: center;
+            justify-content: space-around;
+            padding: 0.5rem;
+            position: relative;
         }
         
         .bottom-nav-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 0.375rem 0.75rem;
+            gap: 0.25rem;
+            padding: 0.5rem;
             color: var(--text-muted);
             text-decoration: none;
             font-size: 0.625rem;
             font-weight: 500;
-            gap: 0.25rem;
+            transition: color 0.15s;
+            min-width: 60px;
         }
         
         .bottom-nav-item.active { color: var(--accent); }
-        .bottom-nav-icon { width: 20px; height: 20px; }
+        .bottom-nav-item i { font-size: 1.25rem; }
         
         .bottom-nav-fab {
             width: 52px;
@@ -862,49 +313,204 @@
             justify-content: center;
             color: white;
             text-decoration: none;
-            margin-top: -26px;
+            margin-top: -1.5rem;
             box-shadow: 0 4px 15px var(--accent-glow);
         }
         
-        @media (max-width: 768px) {
-            .sidebar { display: none; }
-            .main { margin-left: 0; padding-bottom: 80px; }
-            .bottom-nav { display: block; }
-            .content { padding: 1rem; }
+        .bottom-nav-fab i { font-size: 1.25rem; }
+        
+        /* Common Components */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
         }
         
-        @media (min-width: 1600px) {
-            .content { 
-                padding: 2.5rem 3rem;
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .card-title {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .card-title i { color: var(--text-muted); font-size: 0.875rem; }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1.25rem;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .btn-primary:hover { background: var(--accent-hover); }
+        
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-sm { padding: 0.5rem 0.875rem; font-size: 0.8125rem; }
+        
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.375rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .badge-primary { background: var(--accent-light); color: var(--accent); }
+        .badge-secondary { background: var(--bg-input); color: var(--text-secondary); }
+        
+        .form-group { margin-bottom: 1rem; }
+        .form-label {
+            display: block;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 0.375rem;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 0.9375rem;
+            transition: all 0.15s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+        
+        .form-control::placeholder { color: var(--text-muted); }
+        
+        select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            padding-right: 2.5rem;
+        }
+        
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .toast {
+            padding: 0.875rem 1.25rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.875rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .toast-success { border-left: 3px solid var(--success); }
+        .toast-error { border-left: 3px solid var(--danger); }
+        
+        /* Mobile Menu Toggle */
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+        
+        /* Mobile Overlay */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
             }
+            
+            .sidebar.open { transform: translateX(0); }
+            .sidebar-overlay.open { display: block; }
+            
+            .main { 
+                margin-left: 0; 
+                max-width: 100vw;
+            }
+            .menu-toggle { display: block; }
+            .bottom-nav { display: block; }
+            
+            .content { padding: 1rem; padding-bottom: 120px; }
+            .header { padding: 1rem; }
+            .header-title { font-size: 1.125rem; }
         }
         
-        /* Utilities */
-        .text-muted { color: var(--text-muted); }
-        .text-accent { color: var(--accent); }
-        .text-success { color: var(--success); }
-        .font-mono { font-variant-numeric: tabular-nums; }
-        .flex { display: flex; }
-        .flex-between { display: flex; justify-content: space-between; align-items: center; }
-        .gap-1 { gap: 0.5rem; }
-        .gap-2 { gap: 1rem; }
-        .mb-1 { margin-bottom: 0.5rem; }
-        .mb-2 { margin-bottom: 1rem; }
-        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
-        
-        @media (max-width: 1024px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 640px) { .grid-2, .grid-4 { grid-template-columns: 1fr; } }
+        @media (max-width: 640px) {
+            .content { padding: 0.75rem; padding-bottom: 120px; }
+            .card { padding: 1rem; border-radius: var(--radius); }
+            .header-user { display: none; }
+        }
     </style>
 </head>
 <body>
     <div class="app">
+        <!-- Sidebar Overlay -->
+        <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+        
         <!-- Sidebar -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <a href="{% url 'dashboard' %}" class="logo">
                     <span class="logo-icon">IL</span>
-                    IronLog
+                    <span class="logo-text">IronLog</span>
                 </a>
             </div>
             
@@ -912,83 +518,63 @@
                 <div class="nav-section">
                     <div class="nav-label">Main</div>
                     <a href="{% url 'dashboard' %}" class="nav-item {% if request.path == '/' %}active{% endif %}">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                        Dashboard
+                        <i class="fa-solid fa-house"></i> Dashboard
                     </a>
                     <a href="{% url 'log_workout' %}" class="nav-item {% if 'log' in request.path %}active{% endif %}">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                        Log Workout
+                        <i class="fa-solid fa-plus"></i> Log Workout
                     </a>
                     <a href="{% url 'history' %}" class="nav-item {% if 'history' in request.path %}active{% endif %}">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        History
+                        <i class="fa-solid fa-clock-rotate-left"></i> History
                     </a>
                 </div>
                 
                 <div class="nav-section">
                     <div class="nav-label">Tracking</div>
                     <a href="{% url 'personal_bests' %}" class="nav-item {% if 'personal-bests' in request.path %}active{% endif %}">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                        Personal Bests
+                        <i class="fa-solid fa-star"></i> Personal Bests
                     </a>
                     <a href="{% url 'bodyweight' %}" class="nav-item {% if 'bodyweight' in request.path %}active{% endif %}">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="3"/></svg>
-                        Body Weight
+                        <i class="fa-solid fa-scale-balanced"></i> Body Weight
                     </a>
                     <a href="{% url 'goals' %}" class="nav-item {% if 'goals' in request.path %}active{% endif %}">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-                        Goals
+                        <i class="fa-solid fa-bullseye"></i> Goals
                     </a>
                     <a href="{% url 'measurements' %}" class="nav-item {% if 'measurements' in request.path %}active{% endif %}">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10H3M21 6H3M21 14H3M21 18H3"/></svg>
-                        Measurements
+                        <i class="fa-solid fa-ruler"></i> Measurements
                     </a>
                 </div>
                 
                 <div class="nav-section">
                     <div class="nav-label">Tools</div>
                     <a href="{% url 'calendar' %}" class="nav-item {% if 'calendar' in request.path %}active{% endif %}">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        Calendar
+                        <i class="fa-solid fa-calendar-days"></i> Calendar
                     </a>
                     <a href="{% url 'charts' %}" class="nav-item {% if 'charts' in request.path %}active{% endif %}">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                        Charts
+                        <i class="fa-solid fa-chart-line"></i> Charts
                     </a>
                     <a href="{% url 'calculator' %}" class="nav-item {% if 'calculator' in request.path %}active{% endif %}">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="8" y2="10"/><line x1="12" y1="10" x2="12" y2="10"/><line x1="16" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="8" y2="18"/><line x1="12" y1="18" x2="12" y2="18"/><line x1="16" y1="18" x2="16" y2="18"/></svg>
-                        Calculators
+                        <i class="fa-solid fa-calculator"></i> Calculators
                     </a>
                     <a href="{% url 'recommendations' %}" class="nav-item {% if 'recommendations' in request.path %}active{% endif %}">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                        Recommendations
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Recommendations
                     </a>
                     <a href="{% url 'achievements' %}" class="nav-item {% if 'achievements' in request.path %}active{% endif %}">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
-                        Achievements
+                        <i class="fa-solid fa-trophy"></i> Achievements
                     </a>
                 </div>
                 
                 <div class="nav-section">
                     <div class="nav-label">Library</div>
                     <a href="{% url 'templates' %}" class="nav-item {% if 'templates' in request.path %}active{% endif %}">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                        Templates
-                        {% if template_count %}<span class="nav-badge">{{ template_count }}</span>{% endif %}
+                        <i class="fa-solid fa-folder"></i> Templates
                     </a>
                     <a href="{% url 'exercises' %}" class="nav-item {% if 'exercises' in request.path %}active{% endif %}">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4v16M18 4v16M6 12h12"/><path d="M4 8h4M4 16h4M16 8h4M16 16h4"/></svg>
-                        Exercises
-                        {% if exercise_count %}<span class="nav-badge">{{ exercise_count }}</span>{% endif %}
+                        <i class="fa-solid fa-dumbbell"></i> Exercises
                     </a>
                 </div>
             </nav>
             
             <div class="sidebar-footer">
-                <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme">
-                    <span id="theme-icon">🌙</span>
-                </button>
-                
                 {% if user.is_authenticated %}
                 <a href="{% url 'profile' %}" class="user-info" title="View profile">
                     <div class="user-avatar">{{ user.username|slice:":1"|upper }}</div>
@@ -1005,7 +591,12 @@
         <!-- Main -->
         <main class="main">
             <header class="header">
-                <h1 class="header-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <button class="menu-toggle" onclick="toggleSidebar()">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <h1 class="header-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                </div>
                 <div class="header-actions">
                     {% block header_actions %}{% endblock %}
                     {% if user.is_authenticated %}
@@ -1023,23 +614,23 @@
         <nav class="bottom-nav">
             <div class="bottom-nav-items">
                 <a href="{% url 'dashboard' %}" class="bottom-nav-item {% if request.path == '/' %}active{% endif %}">
-                    <svg class="bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                    <i class="fa-solid fa-house"></i>
                     Home
                 </a>
                 <a href="{% url 'history' %}" class="bottom-nav-item {% if 'history' in request.path %}active{% endif %}">
-                    <svg class="bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <i class="fa-solid fa-clock-rotate-left"></i>
                     History
                 </a>
                 <a href="{% url 'log_workout' %}" class="bottom-nav-fab">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="22" height="22"><path d="M12 5v14M5 12h14"/></svg>
+                    <i class="fa-solid fa-plus"></i>
                 </a>
                 <a href="{% url 'personal_bests' %}" class="bottom-nav-item {% if 'personal-bests' in request.path %}active{% endif %}">
-                    <svg class="bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <i class="fa-solid fa-star"></i>
                     PRs
                 </a>
-                <a href="{% url 'exercises' %}" class="bottom-nav-item {% if 'exercises' in request.path %}active{% endif %}">
-                    <svg class="bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4v16M18 4v16M6 12h12"/></svg>
-                    Exercises
+                <a href="{% url 'charts' %}" class="bottom-nav-item {% if 'charts' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-chart-line"></i>
+                    Charts
                 </a>
             </div>
         </nav>
@@ -1057,20 +648,17 @@
     </div>
     
     <script>
-        function toggleTheme() {
-            const html = document.documentElement;
-            const theme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-            html.setAttribute('data-theme', theme);
-            localStorage.setItem('theme', theme);
-            updateThemeButton(theme);
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebar-overlay').classList.toggle('open');
         }
         
-        function updateThemeButton(theme) {
-            document.getElementById('theme-icon').textContent = theme === 'dark' ? '🌙' : '☀️';
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sidebar-overlay').classList.remove('open');
         }
         
-        updateThemeButton(document.documentElement.getAttribute('data-theme') || 'dark');
-        
+        // Auto-dismiss toasts
         setTimeout(() => {
             document.querySelectorAll('.toast').forEach(t => {
                 t.style.opacity = '0';

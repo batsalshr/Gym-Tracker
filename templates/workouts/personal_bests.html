@@ -346,6 +346,7 @@
     @media (max-width: 768px) {
         .filters-bar {
             flex-direction: column;
+            gap: 0.75rem;
         }
         
         .filter-chips {
@@ -353,10 +354,45 @@
             overflow-x: auto;
             flex-wrap: nowrap;
             padding-bottom: 0.5rem;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .chip {
+            flex-shrink: 0;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+        }
+        
+        .sort-toggle {
+            width: 100%;
+        }
+        
+        .toggle-btn {
+            flex: 1;
+            justify-content: center;
+            padding: 0.5rem 0.75rem;
         }
         
         .pr-grid {
             grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+        
+        .pr-card {
+            padding: 1rem;
+        }
+        
+        .pr-exercise {
+            font-size: 1rem;
+        }
+        
+        .pr-weight {
+            font-size: 2rem;
+        }
+        
+        .pr-crown {
+            top: -10px;
+            font-size: 1.25rem;
         }
     }
 </style>
