@@ -4,207 +4,180 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
-    <!-- Quick Actions Row -->
-    <div class="quick-actions">
-        <a href="{% url 'log_workout' %}" class="action-card primary">
-            <div class="action-icon"><i class="fa-solid fa-plus"></i></div>
-            <div class="action-text">
-                <span class="action-title">Start Workout</span>
-                <span class="action-sub">Log your session</span>
-            </div>
-            <i class="fa-solid fa-arrow-right"></i>
-        </a>
-        
-        <a href="{% url 'recommendations' %}" class="action-card">
-            <div class="action-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
-            <div class="action-text">
-                <span class="action-title">For You</span>
-                <span class="action-sub">Recommendations</span>
-            </div>
-        </a>
-        
-        <a href="{% url 'charts' %}" class="action-card">
-            <div class="action-icon"><i class="fa-solid fa-chart-line"></i></div>
-            <div class="action-text">
-                <span class="action-title">Analytics</span>
-                <span class="action-sub">View progress</span>
-            </div>
-        </a>
-    </div>
+<!-- Quick Actions -->
+<div class="actions-row">
+    <a href="{% url 'log_workout' %}" class="action-card primary">
+        <div class="action-icon"><i class="fa-solid fa-plus"></i></div>
+        <div class="action-content">
+            <span class="action-title">Start Workout</span>
+            <span class="action-sub">Log your session</span>
+        </div>
+        <i class="fa-solid fa-arrow-right action-arrow"></i>
+    </a>
+    <a href="{% url 'recommendations' %}" class="action-card">
+        <div class="action-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+        <span class="action-title">For You</span>
+    </a>
+    <a href="{% url 'charts' %}" class="action-card">
+        <div class="action-icon"><i class="fa-solid fa-chart-line"></i></div>
+        <span class="action-title">Analytics</span>
+    </a>
+</div>
 
-    <!-- Stats Row -->
-    <div class="stats-row">
-        <div class="stat-card">
-            <div class="stat-icon fire"><i class="fa-solid fa-fire"></i></div>
-            <div class="stat-info">
-                <span class="stat-label">STREAK</span>
-                <span class="stat-value">{{ streak }}</span>
-                <span class="stat-sub">{% if streak > 0 %}days{% else %}Start today!{% endif %}</span>
-            </div>
+<!-- Stats Row -->
+<div class="stats-row">
+    <div class="stat-card">
+        <div class="stat-icon fire"><i class="fa-solid fa-fire"></i></div>
+        <div class="stat-info">
+            <span class="stat-label">Streak</span>
+            <span class="stat-value">{{ streak }}</span>
+            <span class="stat-sub">{% if streak > 0 %}days{% else %}Start today!{% endif %}</span>
         </div>
-        
-        <div class="stat-card">
-            <div class="stat-icon green"><i class="fa-solid fa-weight-hanging"></i></div>
-            <div class="stat-info">
-                <span class="stat-label">VOLUME</span>
-                <span class="stat-value">{{ weekly_volume|floatformat:0 }}</span>
-                <span class="stat-sub">kg this week</span>
-            </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fa-solid fa-weight-hanging"></i></div>
+        <div class="stat-info">
+            <span class="stat-label">Volume</span>
+            <span class="stat-value">{{ weekly_volume|floatformat:0 }}</span>
+            <span class="stat-sub">kg this week</span>
         </div>
-        
-        <div class="stat-card">
-            <div class="stat-icon gold"><i class="fa-solid fa-trophy"></i></div>
-            <div class="stat-info">
-                <span class="stat-label">PRS</span>
-                <span class="stat-value">{{ personal_bests|length }}</span>
-                <span class="stat-sub">records</span>
-            </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon gold"><i class="fa-solid fa-trophy"></i></div>
+        <div class="stat-info">
+            <span class="stat-label">PRs</span>
+            <span class="stat-value">{{ personal_bests|length }}</span>
+            <span class="stat-sub">records</span>
         </div>
-        
-        {% if latest_weight %}
-        <div class="stat-card">
-            <div class="stat-icon purple"><i class="fa-solid fa-scale-balanced"></i></div>
-            <div class="stat-info">
-                <span class="stat-label">BODY WEIGHT</span>
-                <span class="stat-value">{{ latest_weight.weight }}</span>
-                <span class="stat-sub">kg</span>
-            </div>
+    </div>
+    {% if latest_weight %}
+    <div class="stat-card">
+        <div class="stat-icon purple"><i class="fa-solid fa-scale-balanced"></i></div>
+        <div class="stat-info">
+            <span class="stat-label">Weight</span>
+            <span class="stat-value">{{ latest_weight.weight }}</span>
+            <span class="stat-sub">kg</span>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Main Content Grid -->
+<div class="main-grid">
+    <!-- Left: Recent Workouts -->
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> Recent Workouts</h3>
+            <a href="{% url 'history' %}">View all <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+        {% if recent_workouts %}
+        <div class="workouts-list">
+            {% for workout in recent_workouts %}
+            <a href="{% url 'workout_detail' workout.id %}" class="workout-row">
+                <div class="workout-date">
+                    <span class="date-day">{{ workout.date|date:"d" }}</span>
+                    <span class="date-month">{{ workout.date|date:"M" }}</span>
+                </div>
+                <div class="workout-info">
+                    <span class="workout-title">{{ workout.get_muscle_groups_display }}</span>
+                    <span class="workout-meta">{{ workout.get_total_sets }} sets · {{ workout.get_total_volume|floatformat:0 }}kg</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fa-solid fa-dumbbell"></i>
+            <p>No workouts yet</p>
+            <a href="{% url 'log_workout' %}" class="btn btn-primary btn-sm">Start Workout</a>
         </div>
         {% endif %}
     </div>
 
-    <!-- Main Content Grid -->
-    <div class="dashboard-grid">
-        <!-- Recent Workouts -->
-        <div class="card workouts-section">
-            <div class="card-head">
-                <h3><i class="fa-solid fa-clock-rotate-left"></i> Recent Workouts</h3>
-                <a href="{% url 'history' %}">View all <i class="fa-solid fa-arrow-right"></i></a>
+    <!-- Right: Sidebar -->
+    <div class="sidebar-col">
+        <!-- Top PRs -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-medal"></i> Top PRs</h3>
+                <a href="{% url 'personal_bests' %}">All</a>
             </div>
-            
-            {% if recent_workouts %}
-            <div class="workout-list">
-                {% for workout in recent_workouts %}
-                <a href="{% url 'workout_detail' workout.id %}" class="workout-item">
-                    <div class="workout-date">
-                        <span class="date-day">{{ workout.date|date:"d" }}</span>
-                        <span class="date-month">{{ workout.date|date:"M" }}</span>
+            {% if personal_bests %}
+            <div class="pr-list">
+                {% for pb in personal_bests %}
+                <div class="pr-row">
+                    <div class="pr-info">
+                        <span class="pr-name">{{ pb.exercise.name }}</span>
+                        <span class="pr-group">{{ pb.exercise.get_muscle_group_display }}</span>
                     </div>
-                    <div class="workout-info">
-                        <span class="workout-title">{{ workout.get_muscle_groups_display }}</span>
-                        <span class="workout-desc">{% for name, data in workout.get_exercises_summary.items %}{{ name }}{% if not forloop.last %}, {% endif %}{% empty %}No exercises{% endfor %}</span>
+                    <div class="pr-weight">
+                        <span class="weight-val">{{ pb.weight }}</span>
+                        <span class="weight-unit">kg</span>
+                        <span class="weight-reps">×{{ pb.reps }}</span>
                     </div>
-                    <div class="workout-meta">
-                        <span><i class="fa-solid fa-layer-group"></i> {{ workout.get_total_sets }}</span>
-                        <span><i class="fa-solid fa-weight-hanging"></i> {{ workout.get_total_volume|floatformat:0 }}kg</span>
-                    </div>
-                </a>
+                </div>
                 {% endfor %}
             </div>
             {% else %}
-            <div class="empty-box">
-                <i class="fa-solid fa-dumbbell"></i>
-                <p>No workouts yet</p>
-                <a href="{% url 'log_workout' %}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Start Workout</a>
-            </div>
+            <p class="empty-small">Complete workouts to track PRs</p>
             {% endif %}
         </div>
 
-        <!-- Sidebar Content -->
-        <div class="sidebar-section">
-            <!-- Top PRs -->
-            <div class="card">
-                <div class="card-head">
-                    <h3><i class="fa-solid fa-medal"></i> Top PRs</h3>
-                    <a href="{% url 'personal_bests' %}">All</a>
-                </div>
-                
-                {% if personal_bests %}
-                <div class="pr-list">
-                    {% for pb in personal_bests %}
-                    <div class="pr-item">
-                        <div class="pr-info">
-                            <span class="pr-name">{{ pb.exercise.name }}</span>
-                            <span class="pr-muscle">{{ pb.exercise.get_muscle_group_display }}</span>
-                        </div>
-                        <div class="pr-stats">
-                            <span class="pr-weight">{{ pb.weight }}<small>kg</small></span>
-                            <span class="pr-reps">x{{ pb.reps }}</span>
-                        </div>
+        <!-- Goals -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-bullseye"></i> Goals</h3>
+                <a href="{% url 'goals' %}">All</a>
+            </div>
+            {% if active_goals %}
+            <div class="goals-list">
+                {% for goal in active_goals %}
+                <div class="goal-row">
+                    <div class="goal-info">
+                        <span class="goal-name">{{ goal.name }}</span>
+                        <span class="goal-pct">{{ goal.get_progress_percent }}%</span>
                     </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <p class="empty-text">Complete workouts to track PRs</p>
-                {% endif %}
-            </div>
-
-            <!-- Goals -->
-            <div class="card">
-                <div class="card-head">
-                    <h3><i class="fa-solid fa-bullseye"></i> Goals</h3>
-                    <a href="{% url 'goals' %}">All</a>
-                </div>
-                
-                {% if active_goals %}
-                <div class="goals-list">
-                    {% for goal in active_goals %}
-                    <div class="goal-item">
-                        <div class="goal-top">
-                            <span class="goal-name">{{ goal.name }}</span>
-                            <span class="goal-pct">{{ goal.get_progress_percent }}%</span>
-                        </div>
-                        <div class="goal-bar">
-                            <div class="goal-fill" style="width: {{ goal.get_progress_percent }}%;"></div>
-                        </div>
+                    <div class="goal-bar">
+                        <div class="goal-fill" style="width: {{ goal.get_progress_percent }}%"></div>
                     </div>
-                    {% endfor %}
                 </div>
-                {% else %}
-                <a href="{% url 'goals' %}" class="empty-link"><i class="fa-solid fa-plus"></i> Set your first goal</a>
-                {% endif %}
+                {% endfor %}
             </div>
+            {% else %}
+            <a href="{% url 'goals' %}" class="empty-link"><i class="fa-solid fa-plus"></i> Set a goal</a>
+            {% endif %}
+        </div>
 
-            <!-- Quick Links -->
-            <div class="quick-grid">
-                <a href="{% url 'calendar' %}" class="quick-btn"><i class="fa-solid fa-calendar"></i><span>Calendar</span></a>
-                <a href="{% url 'calculator' %}" class="quick-btn"><i class="fa-solid fa-calculator"></i><span>Calculator</span></a>
-                <a href="{% url 'exercises' %}" class="quick-btn"><i class="fa-solid fa-dumbbell"></i><span>Exercises</span></a>
-                <a href="{% url 'achievements' %}" class="quick-btn"><i class="fa-solid fa-trophy"></i><span>Badges</span></a>
-            </div>
+        <!-- Quick Links -->
+        <div class="quick-links">
+            <a href="{% url 'calendar' %}"><i class="fa-solid fa-calendar"></i><span>Calendar</span></a>
+            <a href="{% url 'calculator' %}"><i class="fa-solid fa-calculator"></i><span>Calculator</span></a>
+            <a href="{% url 'exercises' %}"><i class="fa-solid fa-dumbbell"></i><span>Exercises</span></a>
+            <a href="{% url 'achievements' %}"><i class="fa-solid fa-trophy"></i><span>Badges</span></a>
         </div>
     </div>
 </div>
 
 <style>
-/* Dashboard Container - prevents overflow */
-.dashboard-container {
-    width: 100%;
-    max-width: 100%;
-    overflow: hidden;
-}
-
-/* Quick Actions */
-.quick-actions {
+/* Actions Row */
+.actions-row {
     display: grid;
-    grid-template-columns: 1.5fr 1fr 1fr;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 .action-card {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 1rem;
+    gap: 0.875rem;
+    padding: 1rem 1.25rem;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 12px;
     text-decoration: none;
     color: var(--text-primary);
     transition: all 0.2s;
-    overflow: hidden;
 }
 
 .action-card:hover {
@@ -218,6 +191,10 @@
     color: white;
 }
 
+.action-card.primary:hover {
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
 .action-icon {
     width: 40px;
     height: 40px;
@@ -226,7 +203,7 @@
     justify-content: center;
     background: rgba(255,255,255,0.15);
     border-radius: 10px;
-    font-size: 1.125rem;
+    font-size: 1rem;
     flex-shrink: 0;
 }
 
@@ -235,59 +212,51 @@
     color: var(--accent);
 }
 
-.action-text {
+.action-content {
     flex: 1;
-    min-width: 0;
-    overflow: hidden;
 }
 
 .action-title {
     display: block;
     font-weight: 600;
-    font-size: 0.875rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 0.9375rem;
 }
 
 .action-sub {
-    display: block;
     font-size: 0.75rem;
     opacity: 0.7;
 }
 
-.action-card > i:last-child {
-    flex-shrink: 0;
+.action-arrow {
     opacity: 0.6;
 }
 
 /* Stats Row */
 .stats-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 .stat-card {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.875rem;
     padding: 1rem;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 12px;
-    overflow: hidden;
 }
 
 .stat-icon {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 10px;
-    font-size: 0.875rem;
+    font-size: 1rem;
     flex-shrink: 0;
 }
 
@@ -299,15 +268,14 @@
 .stat-info {
     flex: 1;
     min-width: 0;
-    overflow: hidden;
 }
 
 .stat-label {
     display: block;
-    font-size: 0.625rem;
-    color: var(--text-muted);
+    font-size: 0.6875rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    color: var(--text-muted);
 }
 
 .stat-value {
@@ -318,17 +286,16 @@
 }
 
 .stat-sub {
-    display: block;
     font-size: 0.6875rem;
     color: var(--text-muted);
 }
 
-/* Dashboard Grid */
-.dashboard-grid {
+/* Main Grid */
+.main-grid {
     display: grid;
-    grid-template-columns: 1fr 300px;
-    gap: 1rem;
-    min-width: 0;
+    grid-template-columns: 1fr 320px;
+    gap: 1.25rem;
+    align-items: start;
 }
 
 /* Cards */
@@ -337,20 +304,19 @@
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 1rem;
-    overflow: hidden;
 }
 
-.card-head {
+.card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.875rem;
     padding-bottom: 0.75rem;
     border-bottom: 1px solid var(--border);
 }
 
-.card-head h3 {
-    font-size: 0.8125rem;
+.card-header h3 {
+    font-size: 0.875rem;
     font-weight: 600;
     margin: 0;
     display: flex;
@@ -358,48 +324,40 @@
     gap: 0.5rem;
 }
 
-.card-head h3 i {
+.card-header h3 i {
     color: var(--text-muted);
-    font-size: 0.75rem;
 }
 
-.card-head a {
+.card-header a {
     font-size: 0.75rem;
     color: var(--text-muted);
     text-decoration: none;
 }
 
-.card-head a:hover {
+.card-header a:hover {
     color: var(--accent);
 }
 
-/* Workouts Section */
-.workouts-section {
-    min-width: 0;
-    overflow: hidden;
-}
-
-.workout-list {
+/* Workouts List */
+.workouts-list {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.625rem;
 }
 
-.workout-item {
-    display: grid;
-    grid-template-columns: 44px 1fr auto;
-    gap: 0.75rem;
+.workout-row {
+    display: flex;
     align-items: center;
+    gap: 1rem;
     padding: 0.75rem;
     background: var(--bg-main);
     border-radius: 10px;
     text-decoration: none;
     color: inherit;
-    transition: background 0.15s;
-    overflow: hidden;
+    transition: all 0.15s;
 }
 
-.workout-item:hover {
+.workout-row:hover {
     background: rgba(59, 130, 246, 0.1);
 }
 
@@ -407,7 +365,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 0.375rem;
+    width: 44px;
+    padding: 0.5rem;
     background: linear-gradient(135deg, var(--accent), #6366f1);
     border-radius: 8px;
     color: white;
@@ -415,68 +374,42 @@
 }
 
 .date-day {
-    font-size: 1rem;
+    font-size: 1.125rem;
     font-weight: 700;
     line-height: 1;
 }
 
 .date-month {
-    font-size: 0.5625rem;
+    font-size: 0.625rem;
     text-transform: uppercase;
+    margin-top: 2px;
 }
 
 .workout-info {
+    flex: 1;
     min-width: 0;
-    overflow: hidden;
 }
 
 .workout-title {
     display: block;
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-.workout-desc {
-    display: block;
-    font-size: 0.6875rem;
-    color: var(--text-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
+    margin-bottom: 2px;
 }
 
 .workout-meta {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.125rem;
-    font-size: 0.6875rem;
-    flex-shrink: 0;
-    white-space: nowrap;
-}
-
-.workout-meta span {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-}
-
-.workout-meta i {
-    font-size: 0.5625rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
 }
 
-/* Sidebar */
-.sidebar-section {
+/* Sidebar Column */
+.sidebar-col {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    min-width: 0;
-    overflow: hidden;
+    gap: 1rem;
 }
 
 /* PR List */
@@ -485,83 +418,85 @@
     flex-direction: column;
 }
 
-.pr-item {
+.pr-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.5rem 0;
+    padding: 0.625rem 0;
     border-bottom: 1px solid var(--border);
-    gap: 0.5rem;
-    overflow: hidden;
 }
 
-.pr-item:last-child {
+.pr-row:last-child {
     border-bottom: none;
+    padding-bottom: 0;
+}
+
+.pr-row:first-child {
+    padding-top: 0;
 }
 
 .pr-info {
-    min-width: 0;
-    overflow: hidden;
     flex: 1;
+    min-width: 0;
 }
 
 .pr-name {
     display: block;
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.pr-muscle {
-    font-size: 0.625rem;
+.pr-group {
+    font-size: 0.6875rem;
     color: var(--text-muted);
 }
 
-.pr-stats {
-    text-align: right;
+.pr-weight {
     flex-shrink: 0;
+    text-align: right;
 }
 
-.pr-weight {
-    font-size: 1rem;
+.weight-val {
+    font-size: 1.125rem;
     font-weight: 700;
     color: #fbbf24;
 }
 
-.pr-weight small {
-    font-size: 0.625rem;
-    color: var(--text-muted);
-    font-weight: 400;
-}
-
-.pr-reps {
-    font-size: 0.625rem;
+.weight-unit {
+    font-size: 0.6875rem;
     color: var(--text-muted);
 }
 
-/* Goals */
+.weight-reps {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    margin-left: 0.25rem;
+}
+
+/* Goals List */
 .goals-list {
     display: flex;
     flex-direction: column;
-    gap: 0.625rem;
+    gap: 0.75rem;
 }
 
-.goal-item {
-    overflow: hidden;
+.goal-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
 }
 
-.goal-top {
+.goal-info {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.375rem;
-    gap: 0.5rem;
 }
 
 .goal-name {
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
@@ -571,38 +506,39 @@
 }
 
 .goal-pct {
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: var(--accent);
     flex-shrink: 0;
+    margin-left: 0.5rem;
 }
 
 .goal-bar {
-    height: 4px;
+    height: 6px;
     background: var(--bg-main);
-    border-radius: 2px;
+    border-radius: 3px;
     overflow: hidden;
 }
 
 .goal-fill {
     height: 100%;
     background: linear-gradient(90deg, var(--accent), #6366f1);
-    border-radius: 2px;
+    border-radius: 3px;
 }
 
-/* Quick Grid */
-.quick-grid {
+/* Quick Links */
+.quick-links {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
 }
 
-.quick-btn {
+.quick-links a {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.375rem;
-    padding: 0.75rem 0.5rem;
+    gap: 0.5rem;
+    padding: 1rem;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -611,45 +547,47 @@
     transition: all 0.15s;
 }
 
-.quick-btn:hover {
+.quick-links a:hover {
     border-color: var(--accent);
-    transform: translateY(-1px);
 }
 
-.quick-btn i {
-    font-size: 1rem;
+.quick-links i {
+    font-size: 1.125rem;
     color: var(--accent);
 }
 
-.quick-btn span {
-    font-size: 0.625rem;
+.quick-links span {
+    font-size: 0.75rem;
     font-weight: 500;
 }
 
 /* Empty States */
-.empty-box {
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 2.5rem;
+    color: var(--text-muted);
     text-align: center;
-    padding: 2rem 1rem;
 }
 
-.empty-box i {
+.empty-state i {
     font-size: 2rem;
-    color: var(--text-muted);
     opacity: 0.3;
-    margin-bottom: 0.5rem;
 }
 
-.empty-box p {
-    color: var(--text-muted);
-    margin-bottom: 0.75rem;
-    font-size: 0.875rem;
+.empty-state p {
+    margin: 0;
+    font-size: 0.9375rem;
 }
 
-.empty-text {
+.empty-small {
     text-align: center;
-    padding: 1rem 0;
+    padding: 1rem;
     color: var(--text-muted);
     font-size: 0.8125rem;
+    margin: 0;
 }
 
 .empty-link {
@@ -658,7 +596,7 @@
     padding: 1rem;
     color: var(--accent);
     text-decoration: none;
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
 }
 
 .empty-link:hover {
@@ -666,52 +604,38 @@
 }
 
 /* Responsive */
-@media (max-width: 1100px) {
-    .dashboard-grid {
+@media (max-width: 1024px) {
+    .main-grid {
         grid-template-columns: 1fr;
     }
     
-    .sidebar-section {
+    .sidebar-col {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 0.75rem;
+        gap: 1rem;
     }
     
-    .quick-grid {
+    .quick-links {
         grid-column: 1 / -1;
         grid-template-columns: repeat(4, 1fr);
     }
 }
 
 @media (max-width: 768px) {
-    .quick-actions {
+    .actions-row {
         grid-template-columns: 1fr;
     }
     
-    .sidebar-section {
-        grid-template-columns: 1fr;
-    }
-    
-    .quick-grid {
-        grid-column: auto;
-        grid-template-columns: repeat(4, 1fr);
-    }
-    
-    .workout-meta {
-        display: none;
-    }
-    
-    .workout-item {
-        grid-template-columns: 44px 1fr;
-    }
-}
-
-@media (max-width: 480px) {
     .stats-row {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: 1fr 1fr;
     }
     
-    .quick-grid {
+    .sidebar-col {
+        grid-template-columns: 1fr;
+    }
+    
+    .quick-links {
+        grid-column: auto;
         grid-template-columns: repeat(2, 1fr);
     }
 }

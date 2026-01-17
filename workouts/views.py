@@ -347,43 +347,73 @@ class DeleteSetView(LoginRequiredMixin, View):
 
 
 class PersonalBestsView(LoginRequiredMixin, View):
-    """Personal bests page."""
+    """Personal bests page - optimized for performance."""
     
     def get(self, request):
         user = request.user
         sort_by = request.GET.get('sort', 'weight')
         filter_group = request.GET.get('group', '')
         
-        # Get exercises that have sets logged by this user
-        exercises = Exercise.objects.filter(
+        # Build optimized query with all needed data in one go
+        exercises_qs = Exercise.objects.filter(
             Q(user=user) | Q(user__isnull=True)
         ).annotate(
-            set_count=Count('sets', filter=Q(sets__workout__user=user))
+            set_count=Count('sets', filter=Q(sets__workout__user=user)),
+            max_weight=Max('sets__weight', filter=Q(sets__workout__user=user)),
+            max_reps=Max('sets__reps', filter=Q(sets__workout__user=user))
         ).filter(set_count__gt=0)
         
         if filter_group:
-            exercises = exercises.filter(muscle_group=filter_group)
+            exercises_qs = exercises_qs.filter(muscle_group=filter_group)
         
-        personal_bests = []
-        for exercise in exercises:
-            if sort_by == 'reps':
-                pb = exercise.sets.filter(workout__user=user).order_by('-reps', '-weight').first()
-            else:
-                pb = exercise.get_personal_best(user)
+        # Get all exercise IDs that have sets
+        exercise_ids = list(exercises_qs.values_list('id', flat=True))
+        
+        # Batch fetch all personal bests in one query
+        if sort_by == 'reps':
+            # Get best by reps for each exercise
+            from django.db.models import Window, F
+            from django.db.models.functions import RowNumber
             
+            best_sets = Set.objects.filter(
+                workout__user=user,
+                exercise_id__in=exercise_ids
+            ).select_related('workout', 'exercise').order_by('exercise_id', '-reps', '-weight')
+        else:
+            best_sets = Set.objects.filter(
+                workout__user=user,
+                exercise_id__in=exercise_ids
+            ).select_related('workout', 'exercise').order_by('exercise_id', '-weight', '-reps')
+        
+        # Group by exercise and get first (best) for each
+        seen_exercises = set()
+        pb_by_exercise = {}
+        for s in best_sets:
+            if s.exercise_id not in seen_exercises:
+                seen_exercises.add(s.exercise_id)
+                pb_by_exercise[s.exercise_id] = s
+        
+        # Build results list
+        personal_bests = []
+        for exercise in exercises_qs:
+            pb = pb_by_exercise.get(exercise.id)
             if pb:
+                # Calculate suggestion inline (simple +2.5kg logic)
+                suggestion = float(pb.weight) + 2.5 if pb.weight else None
+                
                 personal_bests.append({
                     'exercise': exercise,
                     'weight': pb.weight,
                     'reps': pb.reps,
                     'date': pb.workout.date,
-                    'suggestion': exercise.get_suggested_weight(user)
+                    'suggestion': suggestion
                 })
         
+        # Sort results
         if sort_by == 'reps':
-            personal_bests.sort(key=lambda x: x['reps'], reverse=True)
+            personal_bests.sort(key=lambda x: (x['reps'] or 0, x['weight'] or 0), reverse=True)
         else:
-            personal_bests.sort(key=lambda x: x['weight'], reverse=True)
+            personal_bests.sort(key=lambda x: (x['weight'] or 0, x['reps'] or 0), reverse=True)
         
         context = {
             'personal_bests': personal_bests,
