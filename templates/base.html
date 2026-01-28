@@ -195,6 +195,11 @@
             text-decoration: none;
             border-radius: 8px;
             transition: all 0.15s;
+            background: none;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            font-family: inherit;
         }
         
         .logout-link:hover { color: var(--danger); background: var(--danger-light); }
@@ -581,9 +586,12 @@
                     <span class="user-name">{{ user.username }}</span>
                     <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 0.75rem;"></i>
                 </a>
-                <a href="{% url 'logout' %}" class="logout-link">
-                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
-                </a>
+                <form method="post" action="{% url 'logout' %}" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-link">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
+                    </button>
+                </form>
                 {% endif %}
             </div>
         </aside>

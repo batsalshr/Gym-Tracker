@@ -20,3 +20,6 @@ workouts/templatetags/__pycache__/__init__.cpython-313.pyc
 workouts/templatetags/__pycache__/custom_filters.cpython-313.pyc
 templates/.DS_Store
 .DS_Store
+.DS_Store
+*.sqlite3
+templates/.DS_Store
